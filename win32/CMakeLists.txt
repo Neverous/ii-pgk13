@@ -1,0 +1,5 @@
+LINK_DIRECTORIES(libs/)
+INCLUDE_DIRECTORIES(includes/)
+
+SET(OPENGL_LIBRARIES "opengl32.lib glew32s.lib glfw32.lib glu32.lib")
+ADD_DEFINITIONS( -DGLEW_STATIC)
