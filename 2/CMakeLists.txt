@@ -6,11 +6,17 @@ IF(WIN32)
     INCLUDE(../win32/win32.cmake)
 
 ELSE(WIN32)
-    FIND_PACKAGE(PkgConfig  REQUIRED)
-    FIND_PACKAGE(OpenGL     REQUIRED)
-    FIND_PACKAGE(GLM        REQUIRED)
-    FIND_PACKAGE(GLEW       REQUIRED)
-    PKG_SEARCH_MODULE(GLFW  REQUIRED glfw3)
+    IF(USE_STATIC)
+        INCLUDE(../static/static.cmake)
+
+    ELSE(USE_STATIC)
+        FIND_PACKAGE(PkgConfig  REQUIRED)
+        FIND_PACKAGE(OpenGL     REQUIRED)
+        #FIND_PACKAGE(GLM        REQUIRED)
+        FIND_PACKAGE(GLEW       REQUIRED)
+        PKG_SEARCH_MODULE(GLFW  REQUIRED glfw3)
+
+    ENDIF(USE_STATIC)
 # BASE C COMPILER FLAGS
     SET(CMAKE_C_FLAGS                       "-pipe -Wall -Wshadow -Woverflow -Wextra -Wstrict-overflow=5")
     SET(CMAKE_C_FLAGS_RELEASE               "-O3 -DNDEBUG")
