@@ -2,6 +2,7 @@
  * Maciej Szeptuch
  * II UWr
  */
+#include "defines.h"
 #include <cstdio>
 #include <cstdlib>
 
@@ -32,7 +33,11 @@ int main(void)
         return 1;
     }
 
-    if(!(window = glfwCreateWindow(1024, 768, "Mastermind", nullptr, nullptr)))
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
+    if(!(window = glfwCreateWindow(512, 512, "Mastermind", nullptr, nullptr)))
     {
         fprintf(stderr, "Failed to open GLFW window\n");
         glfwDestroyWindow(window);
@@ -40,13 +45,10 @@ int main(void)
         return 2;
     }
 
-    // VAO
-    //GLuint VertexArrayID;
-    //glGenVertexArrays(1, &VertexArrayID);
-    //glBindVertexArray(VertexArrayID);
+    // Setup key callback
+    glfwSetKeyCallback(window, glfwKeyCallback);
 
     glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, glfwKeyCallback);
     if(glewInit() != GLEW_OK)
     {
         fprintf(stderr, "Failed to initialize GLEW\n");
@@ -54,9 +56,12 @@ int main(void)
         return -1;
     }
 
+    engine.init();
+    // MAIN LOOP
     while(!glfwWindowShouldClose(window))
     {
-        engine.draw(window);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        engine.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -98,12 +103,12 @@ void glfwKeyPressCallback(GLFWwindow *window, int key, int/* scancode*/, int/* m
             break;
 
         case GLFW_KEY_ENTER:
-            engine.guess.commit();
+            engine.commit();
             break;
 
         case GLFW_KEY_LEFT:
         case GLFW_KEY_RIGHT:
-            engine.guess.select(key);
+            engine.select(key);
             break;
 
         case GLFW_KEY_1:
@@ -114,7 +119,7 @@ void glfwKeyPressCallback(GLFWwindow *window, int key, int/* scancode*/, int/* m
         case GLFW_KEY_6:
         case GLFW_KEY_UP:
         case GLFW_KEY_DOWN:
-            engine.guess.change(key);
+            engine.change(key);
             break;
 
         default:
