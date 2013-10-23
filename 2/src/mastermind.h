@@ -143,6 +143,9 @@ Engine::~Engine(void)
 {
     glDeleteProgram(gl.shaders);
     glDeleteBuffers(1, &gl.borders);
+    glDeleteBuffers(1, &gl.circles);
+    glDeleteBuffers(1, &gl.colors);
+    glDeleteBuffers(1, &gl._final);
     glDeleteVertexArrays(1, &gl.VAI);
 }
 
