@@ -141,12 +141,23 @@ Engine::Engine(void)
 inline
 Engine::~Engine(void)
 {
-    glDeleteProgram(gl.shaders);
-    glDeleteBuffers(1, &gl.borders);
-    glDeleteBuffers(1, &gl.circles);
-    glDeleteBuffers(1, &gl.colors);
-    glDeleteBuffers(1, &gl._final);
-    glDeleteVertexArrays(1, &gl.VAI);
+    if(gl.shaders)
+        glDeleteProgram(gl.shaders);
+
+    if(gl.borders)
+        glDeleteBuffers(1, &gl.borders);
+
+    if(gl.circles)
+        glDeleteBuffers(1, &gl.circles);
+
+    if(gl.colors)
+         glDeleteBuffers(1, &gl.colors);
+
+    if(gl._final)
+        glDeleteBuffers(1, &gl._final);
+
+    if(gl.VAI)
+        glDeleteVertexArrays(1, &gl.VAI);
 }
 
 inline
