@@ -1,3 +1,6 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
+
+#define _GL_COLOR(x) (1. * (x) / 255)
+
 #endif // __DEFINES_H__

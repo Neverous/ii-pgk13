@@ -14,6 +14,8 @@ class Engine;
 
 class Drawer: public Thread
 {
+    friend class Engine;
+
     Logger log;
     Engine *engine;
 
@@ -27,6 +29,11 @@ class Drawer: public Thread
     void stop(void);
 
     void terminate(void);
+
+    void drawBackground(void);
+    void drawObjects(void);
+
+    void loadShaders(void);
 
     public:
         Drawer(Log &_log, Engine *_engine);

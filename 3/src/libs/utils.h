@@ -61,6 +61,15 @@ double parse<double>(const string &_in)
 
 template<>
 inline
+float parse<float>(const string &_in)
+{
+    float result = 0;
+    sscanf(_in.c_str(), "%f", &result);
+    return result;
+}
+
+template<>
+inline
 string parse<string>(const string &_in)
 {
     return _in;

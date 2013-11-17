@@ -10,6 +10,8 @@
 #include "libs/config/config.h"
 #include "libs/thread/thread.h"
 
+#include "objects.h"
+
 using namespace std;
 
 namespace arkanoid
@@ -29,16 +31,32 @@ class Engine
     Physics *physics;
     Drawer  *drawer;
 
-    struct
+    struct Options
     {
-        unsigned int resW;
-        unsigned int resH;
+        unsigned int    resW;
+        unsigned int    resH;
+        string          level;
     } options;
 
-    struct
+    struct GL
     {
-        GLFWwindow *window;
-    } glfw;
+        GLFWwindow  *window;
+        GLuint      buffer;
+        GLuint      shaders;
+        GLuint      positionVector;
+    } gl;
+
+    struct Local
+    {
+        int             lives;
+        unsigned int    bricks;
+        unsigned int    points;
+        Object          background;
+        Object          paddle;
+        Object          ball;
+        Object          brick[128];
+        Point           point[8192];
+    } local;
 
     public:
         Engine(Log &_debug);
@@ -51,6 +69,10 @@ class Engine
     private:
         void movePaddle(int direction);
         void releaseBall(void);
+
+        void loadLevel(const string filename);
+
+        Point *reservePoints(const int count, GLuint &index);
 
         static void glfwErrorCallback(int code, const char *message);
         static void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

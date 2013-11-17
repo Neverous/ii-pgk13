@@ -5,6 +5,8 @@
 #include "libs/config/config.h"
 #include "libs/thread/thread.h"
 
+#include "objects.h"
+
 using namespace std;
 
 namespace arkanoid
@@ -14,11 +16,19 @@ class Engine;
 
 class Physics: public Thread
 {
+    friend class Engine;
+
     Logger log;
     Engine *engine;
 
     struct Options
     {
+        float maxBallVelocity;
+        float ballAcceleration;
+        float ballAngle;
+
+        float maxPaddleVelocity;
+        float paddleAcceleration;
     } options;
 
     void start(void);
@@ -26,6 +36,9 @@ class Physics: public Thread
     void stop(void);
 
     void terminate(void);
+
+    void physicsStep(void);
+    bool handleCollision(Object &a, const Object &b, const float acceleration);
 
     public:
         Physics(Log &_log, Engine *_engine);
