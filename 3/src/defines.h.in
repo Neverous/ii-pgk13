@@ -3,4 +3,62 @@
 
 #define _GL_COLOR(x) (1. * (x) / 255)
 
+#define HEXSIZE 0.025
+#define CREATE_HEXLINE(action, direction) {             \
+    float px = x;                                       \
+    float py = y;                                       \
+    (void) px;                                          \
+    (void) py;                                          \
+    int step = 0;                                       \
+    while(-1. <= y && y <= 1. && -1. <= x && x <= 1.)   \
+    {                                                   \
+        switch(step)                                    \
+        {                                               \
+            case 0:                                     \
+                x += direction * HEXSIZE / 2;           \
+                y -= HEXSIZE * sqrtf(3) / 2;            \
+                break;                                  \
+                                                        \
+            case 1:                                     \
+                x += direction * HEXSIZE;               \
+                break;                                  \
+        }                                               \
+                                                        \
+        action;                                         \
+        step ^= 1;                                      \
+        px = x;                                         \
+        py = y;                                         \
+    }                                                   \
+}
+
+#define CREATE_HEXGRID(action) {                        \
+    for(float s = -1.; s <= 1.; s += HEXSIZE * 3)       \
+    {                                                   \
+        float x = s;                                    \
+        float y = 1.;                                   \
+        CREATE_HEXLINE(action, 1);                      \
+    }                                                   \
+                                                        \
+    for(float s = -1. + HEXSIZE * 2; s <= 1.; s += HEXSIZE * 3)       \
+    {                                                   \
+        float x = s;                                    \
+        float y = 1.;                                   \
+        CREATE_HEXLINE(action, -1);                     \
+    }                                                   \
+                                                        \
+    for(float s = 1.; s >= -1.; s -= HEXSIZE * sqrt(3)) \
+    {                                                   \
+        float x = -1.;                                  \
+        float y = s;                                    \
+        CREATE_HEXLINE(action, 1);                      \
+    }                                                   \
+                                                        \
+    for(float s = 1.; s >= -1.; s -= HEXSIZE * sqrt(3)) \
+    {                                                   \
+        float x = 1.;                                   \
+        float y = s;                                    \
+        CREATE_HEXLINE(action, -1);                     \
+    }                                                   \
+}
+
 #endif // __DEFINES_H__

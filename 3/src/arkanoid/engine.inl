@@ -131,7 +131,7 @@ void Engine::releaseBall(void)
 inline
 void Engine::loadLevel(const string filename)
 {
-    Color COLOR[8][2] = {
+    Color COLOR[9][2] = {
         { {_GL_COLOR(0xC4), _GL_COLOR(0xA0), _GL_COLOR(0x00)}, {_GL_COLOR(0xED), _GL_COLOR(0xD4), _GL_COLOR(0x00)}, }, // YELLOW
         { {_GL_COLOR(0xCE), _GL_COLOR(0x5C), _GL_COLOR(0x00)}, {_GL_COLOR(0xF5), _GL_COLOR(0x79), _GL_COLOR(0x00)}, }, // ORANGE
         { {_GL_COLOR(0x4E), _GL_COLOR(0x9A), _GL_COLOR(0x06)}, {_GL_COLOR(0x73), _GL_COLOR(0xD2), _GL_COLOR(0x16)}, }, // GREEN
@@ -141,7 +141,35 @@ void Engine::loadLevel(const string filename)
 
         { {_GL_COLOR(0x8F), _GL_COLOR(0x59), _GL_COLOR(0x02)}, {_GL_COLOR(0x8F), _GL_COLOR(0x59), _GL_COLOR(0x02)}, }, // PADDLE
         { {_GL_COLOR(0xEE), _GL_COLOR(0xEE), _GL_COLOR(0xEC)}, {_GL_COLOR(0xEE), _GL_COLOR(0xEE), _GL_COLOR(0xEC)}, }, // BALL
+        { {_GL_COLOR(0x55), _GL_COLOR(0x57), _GL_COLOR(0x53)}, {_GL_COLOR(0x55), _GL_COLOR(0x75), _GL_COLOR(0x53)}, }, // GRID
     };
+
+    /* CREATE HEXGRID */
+    {
+        Object &background = local.background;
+        background.points = 0;
+        // calculate number of points
+        CREATE_HEXGRID({
+            background.points += 2;
+        });
+
+        log.debug("Background grid points = %d", background.points);
+        background.local = reservePoints(background.points, background.index);
+
+        Point *current = background.local;
+        for(unsigned int c = 0; c < background.points; ++ c, ++ current)
+            memcpy(&current->R, &COLOR[8][0], sizeof(Color));
+
+        int p = 0;
+        CREATE_HEXGRID({
+            background.local[p].x = px;
+            background.local[p].y = py;
+            ++ p;
+            background.local[p].x = x;
+            background.local[p].y = y;
+            ++ p;
+        });
+    }
 
     ChunkFileReader reader(filename.c_str());
     Object *brick = local.brick;

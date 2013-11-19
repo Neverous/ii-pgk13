@@ -55,7 +55,7 @@ class Engine
         Object          paddle;
         Object          ball;
         Object          brick[128];
-        Point           point[8192];
+        Point           point[32768];
     } local;
 
     public:

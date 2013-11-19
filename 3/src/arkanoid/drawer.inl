@@ -123,7 +123,7 @@ inline
 void Drawer::drawBackground(void)
 {
     glUniform3f(engine->gl.positionVector, 0., 0., 0.);
-    glDrawArrays(GL_LINE_STRIP, engine->local.background.index, engine->local.background.points);
+    glDrawArrays(GL_LINES, engine->local.background.index, engine->local.background.points);
 }
 
 inline
