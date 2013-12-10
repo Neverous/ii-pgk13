@@ -1,0 +1,11 @@
+#ifndef __DEFINES_H__
+#define __DEFINES_H__
+
+#define _GL_COLOR(x) (1. * (x) / 255)
+
+#define VIEW_FRONT  0
+#define VIEW_RIGHT  1
+#define VIEW_FPP    2
+#define VIEW_TPP    3
+
+#endif // __DEFINES_H__
