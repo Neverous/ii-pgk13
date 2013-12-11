@@ -76,6 +76,14 @@ Engine::Engine(Log &_debug)
         {_GL_COLOR(0xEE), _GL_COLOR(0xEE), _GL_COLOR(0xEC)},
     };
 
+    local.ground.points = 4;
+    local.ground.local = reservePoints(local.ground.points, local.ground.index);
+
+    local.ground.local[0].x = local.ground.local[0].z = -1000000.0f;
+    local.ground.local[1].x = 1000000.0f; local.ground.local[1].z = -1000000.0f;
+    local.ground.local[2].x = local.ground.local[2].z = 1000000.0f;
+    local.ground.local[3].x = -1000000.0f; local.ground.local[3].z = 1000000.0f;
+
     local.figures = 256;
     for(unsigned int f = 0; f < local.figures; ++ f)
     {

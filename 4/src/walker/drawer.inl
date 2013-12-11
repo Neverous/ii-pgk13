@@ -124,7 +124,7 @@ void Drawer::drawObjects(void)
     {
         case VIEW_FRONT:
             View = glm::lookAt(
-                glm::vec3(5.0f, 0.5f, 5.0f),
+                glm::vec3(5.0f, 1.0f, 5.0f),
                 glm::vec3(5.0f, 0.25f, 0.0f),
                 glm::vec3(0.0f, 1.0f, 0.0f)
             );
@@ -133,7 +133,7 @@ void Drawer::drawObjects(void)
 
         case VIEW_RIGHT:
             View = glm::lookAt(
-                glm::vec3(7.0f, 0.5f, 0.5f),
+                glm::vec3(7.0f, 1.0f, 0.5f),
                 glm::vec3(5.0f, 0.25f, 0.0f),
                 glm::vec3(0.0f, 1.0f, 0.0f)
             );
@@ -165,8 +165,11 @@ void Drawer::drawObjects(void)
             break;
     }
 
-    glm::mat4   VP         = Projection * View;
-    glm::mat4   MVP(1.0f);
+    glm::mat4   VP  = Projection * View;
+    glm::mat4   MVP = VP;
+
+    glUniformMatrix4fv(engine->gl.MVP, 1, GL_FALSE, &MVP[0][0]);
+    glDrawArrays(GL_QUADS, engine->local.ground.index, engine->local.ground.points);
 
     // draw figures
     for(unsigned int f = 0; f < engine->local.figures; ++ f)

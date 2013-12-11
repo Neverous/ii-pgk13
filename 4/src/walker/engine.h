@@ -44,6 +44,7 @@ class Engine
         unsigned int    view;
         unsigned int    figures;
         unsigned int    points;
+        Object          ground;
         Figure          figure[1024];
         Point           point[32768];
     } local;
