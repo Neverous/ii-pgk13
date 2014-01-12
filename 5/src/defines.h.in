@@ -1,0 +1,18 @@
+#ifndef __DEFINES_H__
+#define __DEFINES_H__
+
+// LIBS OPTS
+#define INLINE_BUILD    true
+
+// AVAILABLE VIEWS
+#define VIEW_MAP    0
+#define VIEW_FPP    1
+
+// TILES SETTINGS
+#define TILE_DENSITY_BITS   12
+
+// FPS CONFIG
+#define LOADER_FPS  60
+#define DRAWER_FPS  60
+
+#endif // __DEFINES_H__
