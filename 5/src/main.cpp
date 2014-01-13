@@ -5,12 +5,13 @@
 #include "defines.h"
 #include <csignal>
 #include <exception>
+#include <cstring>
 
 #include "libs/logger/logger.h"
-#include "libs/config/config.h"
 #include "libs/thread/thread.h"
 
 #include "engine/engine.h"
+#include "drawer/drawer.h"
 
 using namespace std;
 
@@ -19,13 +20,16 @@ ThreadMonitor   threads;
 Log             debug;
 Logger          logger(debug, "MAIN");
 
-terrain::engine::Engine          engine(debug);
+terrain::engine::Engine engine(debug);
+terrain::drawer::Drawer *drawer;
 
 void sigbreak(int signal);
 
 int main(int argc, char **argv)
 {
     debug.setLevel(Log::DEBUG);
+
+    drawer = new terrain::drawer::Drawer(debug);
 
     // Connect signals
     signal(SIGINT,  sigbreak);

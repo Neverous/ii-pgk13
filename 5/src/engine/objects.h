@@ -53,17 +53,17 @@ struct Tile
 {
     enum Status
     {
-        SYNCHRONIZED    = 0,
-        DESYNCHRONIZED  = 1,
+        DESYNCHRONIZED  = 0,
+        SYNCHRONIZED    = 1,
         SCALE           = 3,
     } synchronized;
 
     struct BoundingBox
     {
-        uint32_t    top;
-        uint32_t    left;
-        uint32_t    bottom;
-        uint32_t    right;
+        float   top;
+        float   left;
+        float   bottom;
+        float   right;
     } box;
 
     GLuint buffer;

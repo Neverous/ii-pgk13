@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 
 #include "libs/logger/logger.h"
-#include "libs/config/config.h"
 #include "libs/thread/thread.h"
 
 #include "objects.h"
@@ -15,17 +14,20 @@
 namespace terrain
 {
 
+namespace drawer { class Drawer; }
+namespace loader { class Loader; }
+
 namespace engine
 {
 
 using namespace std;
 using namespace terrain::objects;
 
-static const unsigned int LOADING_BUFFER    = 0;
-static const unsigned int SWAPPING_BUFFER   = 10;
-
 class Engine
 {
+    friend class drawer::Drawer;
+    friend class loader::Loader;
+
     Log     &debug;
     Logger  log;
 
@@ -34,7 +36,7 @@ class Engine
         GLFWwindow  *window;
         GLuint      buffer[11];
         GLuint      shaders[4];
-        GLuint      MVP;
+        GLuint      MVP[4];
     } gl;
 
     struct Local
@@ -44,6 +46,8 @@ class Engine
 
         bool            viewType;
         uint8_t         lod;
+        uint32_t        lodSize[TILE_DENSITY_BITS];
+        uint32_t        *lodIndices[TILE_DENSITY_BITS];
         map<float, map<float, int32_t> > world;
 
         float           zoom;

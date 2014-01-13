@@ -11,6 +11,13 @@
 // TILES SETTINGS
 #define TILE_DENSITY_BITS   12
 
+#define LOADING_BUFFER      0
+#define SWAPPING_BUFFER     1
+#define LOADING_PROGRAM     0
+#define TILE_PROGRAM        1
+#define MAP_PROGRAM         0
+#define FLY_PROGRAM         2
+
 // FPS CONFIG
 #define LOADER_FPS  60
 #define DRAWER_FPS  60
