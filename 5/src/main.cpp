@@ -12,6 +12,7 @@
 
 #include "engine/engine.h"
 #include "drawer/drawer.h"
+#include "loader/loader.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ Logger          logger(debug, "MAIN");
 
 terrain::engine::Engine engine(debug);
 terrain::drawer::Drawer *drawer;
+terrain::loader::Loader *loader;
 
 void sigbreak(int signal);
 
@@ -30,6 +32,7 @@ int main(int argc, char **argv)
     debug.setLevel(Log::DEBUG);
 
     drawer = new terrain::drawer::Drawer(debug);
+    loader = new terrain::loader::Loader(debug);
 
     // Connect signals
     signal(SIGINT,  sigbreak);
