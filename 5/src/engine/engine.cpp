@@ -55,6 +55,8 @@ Engine::Engine(Log &_debug)
 
     local.zoom = 1.0f;
     local.eye = glm::vec3(0.0f, 0.0f, 1.0f);
+    local.bound.maxX = local.bound.maxY = -32000000.0f;
+    local.bound.minX = local.bound.minY = 32000000.0f;
 
     updateViewport();
     updateView();
@@ -71,6 +73,8 @@ void Engine::run(int argc, char **argv)
     for(int a = 1; a < argc; ++ a)
         loadMap(argv[a]);
 
+    local.eye = glm::vec3((local.bound.maxX + local.bound.minX) / 2.0f, (local.bound.maxY + local.bound.minY) / 2.0f, 1.0f);
+    updateView();
     threads.activate();
     log.debug("Running main loop");
     while(!glfwWindowShouldClose(gl.window))
@@ -144,7 +148,15 @@ void Engine::loadMap(const char *path)
     hgt::File map(path);
     for(int h = 0; h <= 1200; ++ h)
         for(int w = 0; w <= 1200; ++ w)
-            local.world[mercator::lonToMet(lon + 1.0 * w / 1200)][mercator::latToMet(lat + 1.0 * h / 1200)] = map.get(w, h);
+        {
+            float x = mercator::lonToMet(lon + 1.0f * w / 1200);
+            float y = mercator::latToMet(lat + 1.0f * h / 1200);
+            local.bound.maxX = max(local.bound.maxX, x);
+            local.bound.maxY = max(local.bound.maxY, y);
+            local.bound.minX = min(local.bound.minX, x);
+            local.bound.minY = min(local.bound.minY, y);
+            local.world[y][x] = map.get(w, h);
+        }
 }
 
 inline
@@ -161,6 +173,12 @@ void Engine::updateView(void)
 {
     local.view = glm::lookAt(local.eye, glm::vec3(glm::vec2(local.eye), 0.0f), glm::vec3(0, 1, 0));
     //log.debug("VIEW: %.3f %.3f", local.eye.x, local.eye.y);
+}
+
+glm::vec4 Engine::getView(void)
+{
+    float res = 500.0f / local.zoom;
+    return glm::vec4(local.eye.x -res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
 }
 
 /* GLFW CALLBACKS */

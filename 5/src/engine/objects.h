@@ -51,11 +51,21 @@ struct TerrainPoint
 
 struct Tile
 {
+    union ID
+    {
+        uint64_t d;
+        struct
+        {
+            uint32_t h;
+            uint32_t w;
+        };
+    } id;
+
     enum Status
     {
-        DESYNCHRONIZED  = 0,
-        SYNCHRONIZED    = 1,
-        SCALE           = 3,
+        SYNCHRONIZED    = 0,
+        DESYNCHRONIZED  = 1,
+        SCALED          = 2,
     } synchronized;
 
     struct BoundingBox
@@ -66,9 +76,10 @@ struct Tile
         float   right;
     } box;
 
-    GLuint buffer;
+    GLuint  buffer;
+    float   zoom;
 
-    Tile(Status _synchronized = DESYNCHRONIZED, BoundingBox _box = {0, 0, 0, 0}, uint32_t _buffer = 0);
+    Tile(uint64_t _id = 0, Status _synchronized = DESYNCHRONIZED, BoundingBox _box = {0, 0, 0, 0}, uint32_t _buffer = 0, float _zoom = 1.0f);
 }; // struct Tile
 
 inline
@@ -141,11 +152,13 @@ TerrainPoint::TerrainPoint(uint32_t _x/* = 0*/, uint32_t _y/* = 0*/, uint32_t _h
 }
 
 inline
-Tile::Tile(Status _synchronized/* = DESYNCHORNIZED*/, BoundingBox _box/* = {0, 0, 0, 0}*/, uint32_t _buffer/* = 0*/)
+Tile::Tile(uint64_t _id/* = 0*/, Status _synchronized/* = DESYNCHORNIZED*/, BoundingBox _box/* = {0, 0, 0, 0}*/, uint32_t _buffer/* = 0*/, float _zoom/* = 1.0f*/)
 :synchronized(_synchronized)
 ,box(_box)
 ,buffer(_buffer)
+,zoom(_zoom)
 {
+    id.d = _id;
 }
 
 } // namespace objects

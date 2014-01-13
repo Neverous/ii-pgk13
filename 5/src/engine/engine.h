@@ -59,6 +59,15 @@ class Engine
 
         glm::vec2       mousePressPosition;
         glm::vec2       mousePrevPosition;
+
+        struct Bound
+        {
+            float   minX;
+            float   maxX;
+
+            float   minY;
+            float   maxY;
+        } bound;
     } local;
 
     public:
@@ -72,6 +81,7 @@ class Engine
         void loadMap(const char *path);
         void updateViewport(void);
         void updateView(void);
+        glm::vec4 getView(void);
 
         static void glfwErrorCallback(int code, const char *message);
         static void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

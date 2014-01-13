@@ -132,7 +132,7 @@ void Drawer::drawTerrain(int lod)
     for(int t = 0; t < 9; ++ t)
     {
         objects::Tile &tile = ::engine.local.tile[t];
-        if(!tile.synchronized)
+        if(tile.synchronized == objects::Tile::Status::DESYNCHRONIZED)
             continue;
 
         drawTile(tile, lod);

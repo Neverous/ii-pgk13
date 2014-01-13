@@ -15,6 +15,7 @@ namespace loader
 class Loader: public Thread
 {
     Logger log;
+    unsigned int divs[128];
 
     void start(void);
     void run(void);
@@ -23,7 +24,9 @@ class Loader: public Thread
     void terminate(void);
 
     void checkTiles(void);
-    void loadTile(objects::Tile &tile, int something);
+    void markInvalidTiles(const objects::Tile::ID &_id);
+    objects::Tile::ID getFirstTile(unsigned int &tileSize);
+    void loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize);
 
     public:
         Loader(Log &_log);
