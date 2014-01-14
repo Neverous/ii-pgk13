@@ -1,8 +1,6 @@
-#version 330 core
-
-out vec3 color;
+#version 110
 
 void main()
 {
-    color = vec3(0x55 / 255.0, 0x57 / 255.0, 0x53 / 255.0);
+    gl_FragColor = vec4(0.33, 0.34, 0.32, 1.0);
 }

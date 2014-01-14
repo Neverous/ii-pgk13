@@ -1,11 +1,11 @@
-#version 330 core
+#version 110
 
 uniform vec4 box;
 uniform mat4 MVP;
 
-layout(location = 0) in vec3 vertexPosition;
+attribute vec3 vertexPosition;
 
-out vec3 fragmentColor;
+varying vec3 fragmentColor;
 
 void main()
 {
@@ -14,19 +14,19 @@ void main()
     vertex.y = box.z + (box.w - box.z) * vertex.y / 2048.0;
 
     gl_Position = MVP * vertex;
-    gl_Position.z = vertex.z == 32768 ? -1000.0 : 0.0;
+    gl_Position.z = vertex.z == 32768.0 ? -1000.0 : 0.0;
 
     vertex.z -= 500.0;
-    if(vertex.z < 0)
+    if(vertex.z < 0.0)
         fragmentColor = vec3(0.0, 0.0, 1.0);
 
-    else if(vertex.z < 500)
+    else if(vertex.z < 500.0)
         fragmentColor = vec3(0.0, vertex.z / 500.0,    0.0);
 
-    else if(vertex.z < 1000)
+    else if(vertex.z < 1000.0)
         fragmentColor = vec3(vertex.z / 500.0 - 1.0, 1.0, 0.0);
 
-    else if(vertex.z < 1500)
+    else if(vertex.z < 1500.0)
         fragmentColor = vec3(1.0, 2.0 - vertex.z / 500.0, 0.0);
 
     else
