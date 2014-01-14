@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "loader.h"
 
+#include <cstring>
 #include <cassert>
 #include <algorithm>
 #include <chrono>
@@ -21,6 +22,14 @@ void Loader::start(void)
 {
     pthread_setname_np(handle.native_handle(), "Drawer");
     log.debug("Starting loader");
+    glfwMakeContextCurrent(::engine.gl.loader);
+    if(glewInit() != GLEW_OK)
+    {
+        glfwDestroyWindow(::engine.gl.loader);
+        glfwTerminate();
+
+        throw runtime_error("GLEWInit error");
+    }
 
     int d = 0;
     for(int t = 0; t < 13; ++ t)
@@ -45,6 +54,7 @@ void Loader::run(void)
     {
         lastFrame = glfwGetTime();
         checkTiles();
+        glFlush();
 
         double currentFrame = glfwGetTime();
         double diff = currentFrame - lastFrame;
@@ -68,25 +78,12 @@ void Loader::terminate(void)
 inline
 void Loader::checkTiles(void)
 {
+    if(!::engine.gl.buffer[SWAPPING_BUFFER])
+        return;
+
     unsigned int tileSize = 0;
     objects::Tile::ID _id = getFirstTile(tileSize);
     markInvalidTiles(_id);
-
-    if(0){
-        log.debug("TILES: (%u, %u) (%u, %u) (%u, %u) | (%u, %u) (%u, %u) (%u, %u) | (%u, %u) (%u, %u) (%u, %u)",
-                _id.h, _id.w,
-                _id.h, _id.w + 1,
-                _id.h, _id.w + 2,
-                _id.h + 1, _id.w,
-                _id.h + 1, _id.w + 1,
-                _id.h + 1, _id.w + 2,
-                _id.h + 2, _id.w,
-                _id.h + 2, _id.w + 1,
-                _id.h + 2, _id.w + 2);
-        glm::vec4 view = ::engine.getView();
-        log.debug("VIEW: %.2f %.2f %.2f %.2f", view.x, view.y, view.z, view.w);
-        log.debug("TILES VIEW[%u]: %.2f %.2f %.2f %.2f", tileSize, -32000000.0f + _id.w * tileSize, -32000000.0f + (_id.w + 3) * tileSize, -32000000.0f + _id.h * tileSize, -32000000.0f + (_id.h + 3) * tileSize);
-    }
 
     for(int h = 0; h < 3; ++ h)
         for(int w = 0; w < 3; ++ w)
@@ -104,6 +101,7 @@ void Loader::checkTiles(void)
             for(int t = 0; t < 9; ++ t)
                 if(::engine.local.tile[t].synchronized != objects::Tile::Status::SYNCHRONIZED)
                 {
+                    log.debug("Loading into %d", t);
                     loadTile(::engine.local.tile[t], __id, tileSize);
                     break;
                 }
@@ -130,19 +128,19 @@ void Loader::markInvalidTiles(const objects::Tile::ID &_id)
                 tile.synchronized = objects::Tile::Status::DESYNCHRONIZED;
         }
 
-        if(tile.synchronized != objects::Tile::Status::SYNCHRONIZED)
-            log.debug("Tile %d marked (%u, %u) %d", t, tile.id.w, tile.id.h, tile.synchronized);
+        //if(tile.synchronized != objects::Tile::Status::SYNCHRONIZED)
+        //    log.debug("Tile %d marked (%u, %u) %d", t, tile.id.w, tile.id.h, tile.synchronized);
     }
 }
 
 inline
 objects::Tile::ID Loader::getFirstTile(unsigned int &tileSize)
 {
-    glm::vec4 view = ::engine.getView();
+    glm::dvec4 view = ::engine.getView();
     tileSize = *lower_bound(divs, divs + 91, (view.y - view.x) * 3 / 5);
     objects::Tile::ID _id;
-    _id.h = min(64000000.0f - 3 * tileSize, max(0.0f, 32000000.0f + view.z)) / tileSize;
-    _id.w = min(64000000.0f - 3 * tileSize, max(0.0f, 32000000.0f + view.x)) / tileSize;
+    _id.h = min(64000000.0 - 3 * tileSize, max(0.0, 32000000.0 + view.z)) / tileSize;
+    _id.w = min(64000000.0 - 3 * tileSize, max(0.0, 32000000.0 + view.x)) / tileSize;
 
     return _id;
 }
@@ -150,12 +148,29 @@ objects::Tile::ID Loader::getFirstTile(unsigned int &tileSize)
 inline
 void Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize)
 {
-    log.debug("Loading tile (%u, %u) [%.2f, %.2f, %.2f, %.2f]", _id.w, _id.h, -32000000.0f + _id.w * tileSize, -32000000.0f + (_id.w + 1) * tileSize, -32000000.0f + _id.h * tileSize, -32000000.0f + (_id.h + 1) * tileSize);
     tile.id.d = _id.d;
-    tile.box.left   = -32000000.0f + _id.w * tileSize;
+    tile.box.left   = -32000000.0 + _id.w * tileSize;
     tile.box.right  = tile.box.left + tileSize;
-    tile.box.bottom = -32000000.0f + _id.h * tileSize;
+    tile.box.bottom = -32000000.0 + _id.h * tileSize;
     tile.box.top    = tile.box.bottom + tileSize;
+    log.debug("Loading tile (%u, %u) [%.2f, %.2f, %.2f, %.2f] {%u}", tile.id.w, tile.id.h, tile.box.left, tile.box.right, tile.box.bottom, tile.box.top, tileSize);
+
+    const uint32_t density = (1 << TILE_DENSITY_BITS) + 1;
+    const uint32_t size = density * density;
+    static objects::TerrainPoint buffer[size] = {};
+    for(unsigned int h = 0; h < density; ++ h)
+        for(unsigned int w = 0; w < density; ++ w)
+        {
+            buffer[h * density + w].x = w;
+            buffer[h * density + w].y = h;
+            buffer[h * density + w].height = 0;
+        }
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.buffer[SWAPPING_BUFFER]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(objects::TerrainPoint) * size, buffer, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    swap(::engine.gl.buffer[SWAPPING_BUFFER], tile.buffer);
 
     tile.zoom           = ::engine.local.zoom;
     tile.synchronized   = objects::Tile::Status::SYNCHRONIZED;

@@ -33,10 +33,13 @@ class Engine
 
     struct GL
     {
+        GLFWwindow  *loader;
         GLFWwindow  *window;
         GLuint      buffer[11];
         GLuint      shaders[4];
         GLuint      MVP[4];
+        GLuint      BOX[4];
+        GLuint      lodIndices[TILE_DENSITY_BITS];
     } gl;
 
     struct Local
@@ -47,26 +50,25 @@ class Engine
         bool            viewType;
         uint8_t         lod;
         uint32_t        lodSize[TILE_DENSITY_BITS];
-        uint32_t        *lodIndices[TILE_DENSITY_BITS];
-        map<float, map<float, int32_t> > world;
+        map<double, map<double, int32_t> > world;
 
-        float           zoom;
-        float           rotation;
-        glm::mat4       projection;
+        double          zoom;
+        double          rotation;
+        glm::dmat4       projection;
 
-        glm::vec3       eye;
-        glm::mat4       view;
+        glm::dvec3       eye;
+        glm::dmat4       view;
 
-        glm::vec2       mousePressPosition;
-        glm::vec2       mousePrevPosition;
+        glm::dvec2       mousePressPosition;
+        glm::dvec2       mousePrevPosition;
 
         struct Bound
         {
-            float   minX;
-            float   maxX;
+            double  minX;
+            double  maxX;
 
-            float   minY;
-            float   maxY;
+            double  minY;
+            double  maxY;
         } bound;
     } local;
 
@@ -81,7 +83,7 @@ class Engine
         void loadMap(const char *path);
         void updateViewport(void);
         void updateView(void);
-        glm::vec4 getView(void);
+        glm::dvec4 getView(void);
 
         static void glfwErrorCallback(int code, const char *message);
         static void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

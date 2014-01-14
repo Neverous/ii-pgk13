@@ -17,7 +17,7 @@ struct Position
     GLfloat y;
     GLfloat z;
 
-    Position(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f);
+    Position(double _x = 0.0, double _y = 0.0, double _z = 0.0);
     operator GLfloat *(void);
 }; // struct Position
 
@@ -27,13 +27,13 @@ struct Color
     GLfloat G;
     GLfloat B;
 
-    Color(float _R = 0.0f, float _G = 0.0f, float _B = 0.0f);
+    Color(double _R = 0.0, double _G = 0.0, double _B = 0.0);
     operator GLfloat *(void);
 }; // struct Color
 
 struct Point: public Position, public Color
 {
-    Point(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f, float _R = 0.0f, float _G = 0.0f, float _B = 0.0f);
+    Point(double _x = 0.0, double _y = 0.0, double _z = 0.0, double _R = 0.0, double _G = 0.0, double _B = 0.0);
 
     Point &operator=(const Position& position);
     Point &operator=(const Color& color);
@@ -42,11 +42,11 @@ struct Point: public Position, public Color
 
 struct TerrainPoint
 {
-    uint32_t    x       :TILE_DENSITY_BITS;
-    uint32_t    y       :TILE_DENSITY_BITS;
-    uint32_t    height  :14;
+    uint16_t    x;
+    uint16_t    y;
+    uint16_t    height;
 
-    TerrainPoint(uint32_t _x = 0, uint32_t _y = 0, uint32_t _height = 0);
+    TerrainPoint(uint16_t _x = 0, uint16_t _y = 0, uint16_t _height = 0);
 }; // struct TerrainPoint
 
 struct Tile
@@ -70,20 +70,20 @@ struct Tile
 
     struct BoundingBox
     {
-        float   top;
-        float   left;
-        float   bottom;
-        float   right;
+        double   top;
+        double   left;
+        double   bottom;
+        double   right;
     } box;
 
     GLuint  buffer;
-    float   zoom;
+    double   zoom;
 
-    Tile(uint64_t _id = 0, Status _synchronized = DESYNCHRONIZED, BoundingBox _box = {0, 0, 0, 0}, uint32_t _buffer = 0, float _zoom = 1.0f);
+    Tile(uint64_t _id = 0, Status _synchronized = DESYNCHRONIZED, BoundingBox _box = {0, 0, 0, 0}, uint32_t _buffer = 0, double _zoom = 1.0);
 }; // struct Tile
 
 inline
-Position::Position(float _x/* = 0.0f*/, float _y/* = 0.0f*/, float _z/* = 0.0f*/)
+Position::Position(double _x/* = 0.0*/, double _y/* = 0.0*/, double _z/* = 0.0*/)
 :x(_x)
 ,y(_y)
 ,z(_z)
@@ -97,7 +97,7 @@ Position::operator GLfloat *(void)
 }
 
 inline
-Color::Color(float _R/* = 0.0f*/, float _G/* = 0.0f*/, float _B/* = 0.0f*/)
+Color::Color(double _R/* = 0.0*/, double _G/* = 0.0*/, double _B/* = 0.0*/)
 :R(_R)
 ,G(_G)
 ,B(_B)
@@ -111,7 +111,7 @@ Color::operator GLfloat *(void)
 }
 
 inline
-Point::Point(float _x/* = 0.0f*/, float _y/* = 0.0f*/, float _z/* = 0.0f*/, float _R/* = 0.0f*/, float _G/* = 0.0f*/, float _B/* = 0.0f*/)
+Point::Point(double _x/* = 0.0*/, double _y/* = 0.0*/, double _z/* = 0.0*/, double _R/* = 0.0*/, double _G/* = 0.0*/, double _B/* = 0.0*/)
 :Position(_x, _y, _z)
 ,Color(_R, _G, _B)
 {
@@ -144,7 +144,7 @@ Point::operator GLfloat *(void)
 }
 
 inline
-TerrainPoint::TerrainPoint(uint32_t _x/* = 0*/, uint32_t _y/* = 0*/, uint32_t _height/* = 0*/)
+TerrainPoint::TerrainPoint(uint16_t _x/* = 0*/, uint16_t _y/* = 0*/, uint16_t _height/* = 0*/)
 :x(_x)
 ,y(_y)
 ,height(_height)
@@ -152,7 +152,7 @@ TerrainPoint::TerrainPoint(uint32_t _x/* = 0*/, uint32_t _y/* = 0*/, uint32_t _h
 }
 
 inline
-Tile::Tile(uint64_t _id/* = 0*/, Status _synchronized/* = DESYNCHORNIZED*/, BoundingBox _box/* = {0, 0, 0, 0}*/, uint32_t _buffer/* = 0*/, float _zoom/* = 1.0f*/)
+Tile::Tile(uint64_t _id/* = 0*/, Status _synchronized/* = DESYNCHORNIZED*/, BoundingBox _box/* = {0, 0, 0, 0}*/, uint32_t _buffer/* = 0*/, double _zoom/* = 1.0*/)
 :synchronized(_synchronized)
 ,box(_box)
 ,buffer(_buffer)

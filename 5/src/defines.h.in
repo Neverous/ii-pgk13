@@ -9,10 +9,10 @@
 #define VIEW_FPP    1
 
 // TILES SETTINGS
-#define TILE_DENSITY_BITS   12
+#define TILE_DENSITY_BITS   11
 
-#define LOADING_BUFFER      0
-#define SWAPPING_BUFFER     1
+#define LOADING_BUFFER      9
+#define SWAPPING_BUFFER     10
 #define LOADING_PROGRAM     0
 #define TILE_PROGRAM        1
 #define MAP_PROGRAM         0

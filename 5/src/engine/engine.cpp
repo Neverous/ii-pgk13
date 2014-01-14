@@ -31,6 +31,14 @@ Engine::Engine(Log &_debug)
     if(!glfwInit())
         throw runtime_error("GLFWInit error!");
 
+    glfwWindowHint(GLFW_VISIBLE,                false);
+    if(!(gl.loader = glfwCreateWindow(1, 1, "loader", nullptr, nullptr)))
+    {
+        glfwTerminate();
+        throw runtime_error("GLFWCreateWindow error!");
+    }
+
+    glfwWindowHint(GLFW_VISIBLE,                true);
     glfwWindowHint(GLFW_RESIZABLE,              false);
     glfwWindowHint(GLFW_SAMPLES,                4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,  2);
@@ -40,7 +48,7 @@ Engine::Engine(Log &_debug)
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
 
-    if(!(gl.window = glfwCreateWindow(800, 600, "terrain", nullptr, nullptr)))
+    if(!(gl.window = glfwCreateWindow(800, 600, "terrain", nullptr, gl.loader)))
     {
         glfwTerminate();
         throw runtime_error("GLFWCreateWindow error!");
@@ -53,10 +61,10 @@ Engine::Engine(Log &_debug)
     glfwSetCursorPosCallback(gl.window,     Engine::glfwMouseMoveCallback);
     glfwSetScrollCallback(gl.window,        Engine::glfwWheelCallback);
 
-    local.zoom = 1.0f;
-    local.eye = glm::vec3(0.0f, 0.0f, 1.0f);
-    local.bound.maxX = local.bound.maxY = -32000000.0f;
-    local.bound.minX = local.bound.minY = 32000000.0f;
+    local.zoom = 1.0;
+    local.eye = glm::dvec3(0.0, 0.0, 1.0);
+    local.bound.maxX = local.bound.maxY = -32000000.0;
+    local.bound.minX = local.bound.minY = 32000000.0;
 
     updateViewport();
     updateView();
@@ -73,7 +81,7 @@ void Engine::run(int argc, char **argv)
     for(int a = 1; a < argc; ++ a)
         loadMap(argv[a]);
 
-    local.eye = glm::vec3((local.bound.maxX + local.bound.minX) / 2.0f, (local.bound.maxY + local.bound.minY) / 2.0f, 1.0f);
+    local.eye = glm::dvec3((local.bound.maxX + local.bound.minX) / 2.0, (local.bound.maxY + local.bound.minY) / 2.0, 1.0);
     updateView();
     threads.activate();
     log.debug("Running main loop");
@@ -149,36 +157,36 @@ void Engine::loadMap(const char *path)
     for(int h = 0; h <= 1200; ++ h)
         for(int w = 0; w <= 1200; ++ w)
         {
-            float x = mercator::lonToMet(lon + 1.0f * w / 1200);
-            float y = mercator::latToMet(lat + 1.0f * h / 1200);
+            double x = mercator::lonToMet(lon + 1.0 * w / 1200);
+            double y = mercator::latToMet(lat + 1.0 * h / 1200);
             local.bound.maxX = max(local.bound.maxX, x);
             local.bound.maxY = max(local.bound.maxY, y);
             local.bound.minX = min(local.bound.minX, x);
             local.bound.minY = min(local.bound.minY, y);
-            local.world[y][x] = map.get(w, h);
+            local.world[y][x] = map.get(w, h) + 900;
         }
 }
 
 inline
 void Engine::updateViewport(void)
 {
-    float wres = 400.0f / local.zoom;
-    float hres = 300.0f / local.zoom;
-    local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0f, 10.0f), local.rotation, glm::vec3(0, 0, 1));
+    double wres = 400.0 / local.zoom;
+    double hres = 300.0 / local.zoom;
+    local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation, glm::dvec3(0.0, 0.0, 1.0));
     //log.debug("VIEWPORT: %.3f %.3f %.3f %.3f ZOOM: %.3f ROTATION: %.3f", -wres, wres, -hres, hres, local.zoom, local.rotation);
 }
 
 inline
 void Engine::updateView(void)
 {
-    local.view = glm::lookAt(local.eye, glm::vec3(glm::vec2(local.eye), 0.0f), glm::vec3(0, 1, 0));
+    local.view = glm::lookAt(local.eye, glm::dvec3(glm::dvec2(local.eye), 0.0), glm::dvec3(0.0, 1.0, 0.0));
     //log.debug("VIEW: %.3f %.3f", local.eye.x, local.eye.y);
 }
 
-glm::vec4 Engine::getView(void)
+glm::dvec4 Engine::getView(void)
 {
-    float res = 500.0f / local.zoom;
-    return glm::vec4(local.eye.x -res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
+    double res = 500.0 / local.zoom;
+    return glm::dvec4(local.eye.x -res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
 }
 
 /* GLFW CALLBACKS */
@@ -206,7 +214,7 @@ void Engine::glfwMouseButtonCallback(GLFWwindow *window, int button, int action,
             {
                 double x, y;
                 glfwGetCursorPos(window, &x, &y);
-                ::engine.local.mousePrevPosition = ::engine.local.mousePressPosition = glm::vec2(x, y);
+                ::engine.local.mousePrevPosition = ::engine.local.mousePressPosition = glm::dvec2(x, y);
             }
             break;
 
@@ -239,13 +247,13 @@ void Engine::glfwMouseMoveCallback(GLFWwindow *window, double x, double y)
         return;
 
     //::engine.log.debug("Move cb");
-    glm::vec2 mouseCurPosition(x, y);
+    glm::dvec2 mouseCurPosition(x, y);
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        glm::vec2 diff = glm::rotate(mouseCurPosition - ::engine.local.mousePrevPosition, ::engine.local.rotation) / ::engine.local.zoom;
+        glm::dvec2 diff = glm::rotate(mouseCurPosition - ::engine.local.mousePrevPosition, ::engine.local.rotation) / ::engine.local.zoom;
         diff.x *= -1;
 
-        ::engine.local.eye += glm::vec3(diff, 0.0f);
+        ::engine.local.eye += glm::dvec3(diff, 0.0);
         ::engine.updateView();
     }
 
@@ -254,11 +262,11 @@ void Engine::glfwMouseMoveCallback(GLFWwindow *window, double x, double y)
         ::engine.local.rotation += orientedAngle(   glm::normalize(mouseCurPosition - ::engine.local.mousePressPosition),
                                                     glm::normalize(::engine.local.mousePrevPosition - ::engine.local.mousePressPosition));
 
-        while(::engine.local.rotation > 360.0f)
-            ::engine.local.rotation -= 360.0f;
+        while(::engine.local.rotation > 360.0)
+            ::engine.local.rotation -= 360.0;
 
         while(::engine.local.rotation < 0)
-            ::engine.local.rotation += 360.0f;
+            ::engine.local.rotation += 360.0;
 
         ::engine.updateViewport();
     }
@@ -272,7 +280,7 @@ void Engine::glfwWheelCallback(GLFWwindow */*window*/, double/* x*/, double y)
         return;
 
     //::engine.log.debug("Wheel cb");
-    ::engine.local.zoom = min(10.0f, max(0.0001f, ::engine.local.zoom * powf(1.25, y)));
+    ::engine.local.zoom = min(10.0, max(0.0001, ::engine.local.zoom * powf(1.25, y)));
     ::engine.updateViewport();
 }
 

@@ -30,31 +30,45 @@ void Drawer::start(void)
     }
 
     glfwSwapInterval(0);
-    glClearColor(0x2E / 255.0f, 0x34 / 255.0f, 0x36 / 255.0f, 1.0f);
+    glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
 
     glGenBuffers(11, ::engine.gl.buffer);
+    for(int t = 0; t < 9; ++ t)
+        ::engine.local.tile[t].buffer = ::engine.gl.buffer[t];
+
     loadShaders();
 
     log.debug("Creating lod tables");
+    glGenBuffers(TILE_DENSITY_BITS, ::engine.gl.lodIndices);
+    const uint32_t density = (1 << TILE_DENSITY_BITS) + 1;
     for(int l = 0; l < TILE_DENSITY_BITS; ++ l)
     {
-        ::engine.local.lodSize[l] = ((1 << (TILE_DENSITY_BITS - l)) - 1) * ((1 << (TILE_DENSITY_BITS - l)) - 1) * 6;
-        ::engine.local.lodIndices[l] = new uint32_t[::engine.local.lodSize[l]];
-        int i = 0;
-        for(int h = 0; h < (1 << (TILE_DENSITY_BITS - l)) - 1; ++ h)
-            for(int w = 0; w < (1 << (TILE_DENSITY_BITS - l)) - 1; ++ w)
+        const uint32_t  lodDensity = (1 << (TILE_DENSITY_BITS - l));
+        const uint32_t  lodStep    = (1 << l);
+        ::engine.local.lodSize[l] = lodDensity * lodDensity * 6;
+        uint32_t *indice = new uint32_t[::engine.local.lodSize[l]];
+        unsigned int c = 0;
+        for(unsigned int h = 0; h < lodDensity; ++ h)
+            for(unsigned int w = 0; w < lodDensity; ++ w)
             {
-                uint32_t current    = w + h * (1 << (TILE_DENSITY_BITS - l)),
-                         next       = current + (1 << (TILE_DENSITY_BITS - l));
+                uint32_t current    = h * density * lodStep + w * lodStep,
+                         next       = current + density * lodStep;
 
-                ::engine.local.lodIndices[l][i ++] = current;
-                ::engine.local.lodIndices[l][i ++] = next;
-                ::engine.local.lodIndices[l][i ++] = current + 1;
+                indice[c ++] = current;
+                indice[c ++] = next;
+                indice[c ++] = current + lodStep;
 
-                ::engine.local.lodIndices[l][i ++] = next;
-                ::engine.local.lodIndices[l][i ++] = next + 1;
-                ::engine.local.lodIndices[l][i ++] = current + 1;
+                indice[c ++] = current + lodStep;
+                indice[c ++] = next;
+                indice[c ++] = next + lodStep;
+
             }
+
+        assert(c == ::engine.local.lodSize[l]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[l]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ::engine.local.lodSize[l] * sizeof(uint32_t), indice, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        delete[] indice;
     }
 
     log.debug("Creating loading mesh");
@@ -62,14 +76,14 @@ void Drawer::start(void)
     int p = 0;
     for(int l = 0; l < 8192; ++ l)
     {
-        mesh[p ++] = objects::Position(-32000000.0f, 32000000.0f - l * 64000000.0f / 8191);
-        mesh[p ++] = objects::Position(32000000.0f, 32000000.0f - l * 64000000.0f / 8191);
+        mesh[p ++] = objects::Position(-32000000.0, 32000000.0 - l * 64000000.0 / 8191);
+        mesh[p ++] = objects::Position(32000000.0, 32000000.0 - l * 64000000.0 / 8191);
     }
 
     for(int l = 0; l < 8192; ++ l)
     {
-        mesh[p ++] = objects::Position(-32000000.0f + l * 64000000.0f / 8191, 32000000.0f);
-        mesh[p ++] = objects::Position(-32000000.0f + l * 64000000.0f / 8191, -32000000.0f);
+        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, 32000000.0);
+        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, -32000000.0);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
@@ -79,11 +93,13 @@ void Drawer::start(void)
 
 void Drawer::run(void)
 {
-    static int lod = 0;
+    int lod = 0;
     log.debug("Running drawer");
     double lastFrame = 0;
-    static double _counter = 0;
-    static int _c = 0;
+    double _counter = 0;
+    int _c = 0;
+    int _good = 0;
+    int _bad = 0;
     while(state == Thread::STARTED)
     {
         lastFrame = glfwGetTime();
@@ -105,14 +121,27 @@ void Drawer::run(void)
 
         if(diff < 1.0L / DRAWER_FPS)
         {
-            lod = max(0, lod - 1);
+            _bad = 0;
+            if(++ _good == 10 * DRAWER_FPS)
+            {
+                _good = 0;
+                lod = max(0, lod - 1);
+                log.debug("LOD: %d", lod);
+            }
+
             this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0L / (DRAWER_FPS - 1) - diff * 1000.0L)));
         }
 
         else if(diff > 1.0L / (DRAWER_FPS - 1))
         {
-            log.warning("Rendering frame took: %.4lfs", diff);
-            lod = min(lod + 1, 10);
+            _good = 0;
+            if(++ _bad == DRAWER_FPS / 10)
+            {
+                _bad = 0;
+                lod = min(lod + 1, TILE_DENSITY_BITS);
+            }
+
+            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, lod);
         }
     }
 }
@@ -129,6 +158,7 @@ inline
 void Drawer::drawTerrain(int lod)
 {
     drawFoundation();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[lod]);
     for(int t = 0; t < 9; ++ t)
     {
         objects::Tile &tile = ::engine.local.tile[t];
@@ -137,6 +167,8 @@ void Drawer::drawTerrain(int lod)
 
         drawTile(tile, lod);
     }
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 inline
@@ -146,7 +178,7 @@ void Drawer::drawFoundation(void)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glUseProgram(::engine.gl.shaders[MAP_PROGRAM + LOADING_PROGRAM]);
-    glm::mat4 uniform = ::engine.local.projection * ::engine.local.view;
+    glm::mat4 uniform = glm::mat4(::engine.local.projection * ::engine.local.view);
     glUniformMatrix4fv(::engine.gl.MVP[MAP_PROGRAM + LOADING_PROGRAM], 1, GL_FALSE, &uniform[0][0]);
 
     glDrawArrays(GL_LINES, 0, 32768);
@@ -159,18 +191,20 @@ void Drawer::drawFoundation(void)
 inline
 void Drawer::drawTile(objects::Tile &tile, int lod)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tile.buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, tile.buffer);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
     glUseProgram(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM]);
 
-    glm::mat4 uniform = ::engine.local.projection * ::engine.local.view;
-    glUniformMatrix4fv(::engine.gl.MVP[MAP_PROGRAM + LOADING_PROGRAM], 1, GL_FALSE, &uniform[0][0]);
-    glDrawElements(GL_TRIANGLES, ::engine.local.lodSize[lod], GL_UNSIGNED_INT, ::engine.local.lodIndices[lod]);
+    glm::mat4 uniform   = glm::mat4(::engine.local.projection * ::engine.local.view);
+    glm::vec4 box(tile.box.left, tile.box.right, tile.box.bottom, tile.box.top);
+    glUniformMatrix4fv(::engine.gl.MVP[MAP_PROGRAM + TILE_PROGRAM], 1, GL_FALSE, &uniform[0][0]);
+    glUniform4fv(::engine.gl.BOX[MAP_PROGRAM + TILE_PROGRAM], 1, &box.x);
+    glDrawElements(GL_TRIANGLES, ::engine.local.lodSize[lod], GL_UNSIGNED_INT, nullptr);
 
     glUseProgram(0);
     glDisableVertexAttribArray(0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
@@ -181,13 +215,15 @@ void Drawer::loadShaders(void)
 
     ::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM] = loadShader("src/shaders/map/mapVertex.glsl", "src/shaders/map/mapFragment.glsl");
     ::engine.gl.MVP[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "MVP");
+    ::engine.gl.BOX[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "box");
 
     /*
     ::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM] = loadShader("src/shaders/fly/loadVertex.glsl", "src/shaders/fly/loadFragment.glsl");
     ::engine.gl.MVP[FLY_PROGRAM + LOADING_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM], "MVP");
 
     ::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM] = loadShader("src/shaders/fly/mapVertex.glsl", "src/shaders/fly/mapFragment.glsl");
-    ::engine.gl.MVP[FLY_PROGRAM + FLY_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "MVP");
+    ::engine.gl.MVP[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "MVP");
+    ::engine.gl.BOX[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "box");
     */
 }
 

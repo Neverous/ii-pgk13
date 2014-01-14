@@ -5,10 +5,10 @@
 #include <glm/gtx/vector_angle.hpp>
 
 inline
-float orientedAngle(const glm::vec2 &x, const glm::vec2 &y)
+double orientedAngle(const glm::dvec2 &x, const glm::dvec2 &y)
 {
-    float angle = min(360.0f, max(0.0f, glm::degrees(acosf(glm::dot(x, y)))));
-    if(glm::cross(glm::vec3(x, 0.0f), glm::vec3(y, 0.0f)).z < 0)
+    double angle = min(360.0, max(0.0, (double) glm::degrees(acos(glm::dot(x, y)))));
+    if(glm::cross(glm::dvec3(x, 0.0), glm::dvec3(y, 0.0)).z < 0)
         return -angle;
 
     return angle;
