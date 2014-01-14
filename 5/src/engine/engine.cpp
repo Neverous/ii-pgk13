@@ -54,20 +54,20 @@ Engine::Engine(Log &_debug)
         throw runtime_error("GLFWCreateWindow error!");
     }
 
-    glfwSetWindowCloseCallback(gl.window, Engine::glfwWindowCloseCallback);
-    glfwSetFramebufferSizeCallback(gl.window, Engine::glfwWindowResizeCallback);
+    glfwSetWindowCloseCallback(gl.window,       Engine::glfwWindowCloseCallback);
+    glfwSetFramebufferSizeCallback(gl.window,   Engine::glfwWindowResizeCallback);
 
     glfwSetKeyCallback(gl.window,           Engine::glfwKeyCallback);
     glfwSetMouseButtonCallback(gl.window,   Engine::glfwMouseButtonCallback);
     glfwSetCursorPosCallback(gl.window,     Engine::glfwMouseMoveCallback);
     glfwSetScrollCallback(gl.window,        Engine::glfwWheelCallback);
 
-    local.width     = 800;
-    local.height    = 600;
-    local.zoom = 1.0;
-    local.eye = glm::dvec3(0.0, 0.0, 1.0);
-    local.bound.maxX = local.bound.maxY = -32000000.0;
-    local.bound.minX = local.bound.minY = 32000000.0;
+    local.width         = 800;
+    local.height        = 600;
+    local.zoom          = 1.0;
+    local.eye           = glm::dvec3(0.0, 0.0, 1.0);
+    local.bound.maxX    = local.bound.maxY = -32000000.0;
+    local.bound.minX    = local.bound.minY = 32000000.0;
 
     updateViewport();
     updateView();
@@ -80,12 +80,14 @@ Engine::~Engine(void)
 void Engine::run(int argc, char **argv)
 {
     log.notice("Loading engine");
-    log.debug("Loading maps");
+
+    log.debug("Loading %d maps", argc - 1);
     for(int a = 1; a < argc; ++ a)
         loadMap(argv[a]);
 
     local.eye = glm::dvec3((local.bound.maxX + local.bound.minX) / 2.0, (local.bound.maxY + local.bound.minY) / 2.0, 1.0);
     updateView();
+
     threads.activate();
     log.debug("Running main loop");
     while(!glfwWindowShouldClose(gl.window))
@@ -118,20 +120,20 @@ void Engine::loadMap(const char *path)
     if(!(extension = strrchr(filename, '.')) || strcmp(extension + 1, "hgt"))
         throw runtime_error("Invalid map file type");
 
-    log.debug("Trying to load %s square", filename);
+    log.debug("Loading %s square", filename);
     *extension = 0;
-    sscanf(filename, "%2[nNsS]%4[0123456789]%2[wWeE]%4[0123456789]", nPos, nDeg, wPos, wDeg);
+    sscanf(filename, "%1[nNsS]%3[0123456789]%1[wWeE]%3[0123456789]", nPos, nDeg, wPos, wDeg);
     sscanf(nDeg, "%d", &lat);
     sscanf(wDeg, "%d", &lon);
     switch(nPos[0])
     {
-        case 'n':
-        case 'N':
-            break;
-
         case 's':
         case 'S':
             lat *= -1;
+            break;
+
+        case 'n':
+        case 'N':
             break;
 
         default:
@@ -163,15 +165,13 @@ void Engine::loadMap(const char *path)
     hgt::File map(path);
     for(int h = 0; h < 1201; ++ h)
         for(int w = 0; w < 1201; ++ w)
-        {
-            double x = mercator::lonToMet(lon + 1.0 * w / 1200.0);
-            double y = mercator::latToMet(lat + 1.0 * h / 1200.0);
-            local.bound.maxX = max(local.bound.maxX, x);
-            local.bound.maxY = max(local.bound.maxY, y);
-            local.bound.minX = min(local.bound.minX, x);
-            local.bound.minY = min(local.bound.minY, y);
             chunk[h][w] = map.get(w, h) + 500;
-        }
+
+    local.bound.maxX = max(local.bound.maxX, mercator::lonToMet(lon + 1));
+    local.bound.maxY = max(local.bound.maxY, mercator::latToMet(lat + 1));
+    local.bound.minX = min(local.bound.minX, mercator::lonToMet(lon));
+    local.bound.minY = min(local.bound.minY, mercator::latToMet(lat));
+    log.debug("Loaded data from %s", filename);
 }
 
 inline
@@ -196,7 +196,6 @@ glm::dvec4 Engine::getView(void)
 }
 
 /* GLFW CALLBACKS */
-
 void Engine::glfwErrorCallback(int code, const char *message)
 {
     ::engine.debug.error("GLFW", "Error %d: %s", code, message);
@@ -240,13 +239,19 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
 
         case GLFW_KEY_KP_ADD:
             if(action == GLFW_PRESS)
+            {
                 ::engine.local.lod = max(0, ::engine.local.lod - 1);
+                ::engine.log.debug("LDO+: %d", ::engine.local.lod);
+            }
 
             break;
 
         case GLFW_KEY_KP_SUBTRACT:
             if(action == GLFW_PRESS)
+            {
                 ::engine.local.lod = min(TILE_DENSITY_BITS - 1, ::engine.local.lod + 1);
+                ::engine.log.debug("LDO-: %d", ::engine.local.lod);
+            }
 
             break;
     }
@@ -313,7 +318,9 @@ void Engine::glfwMouseMoveCallback(GLFWwindow *window, double x, double y)
         ::engine.updateView();
     }
 
-    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && mouseCurPosition != ::engine.local.mousePressPosition && ::engine.local.mousePrevPosition != ::engine.local.mousePressPosition)
+    if( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS
+    &&  mouseCurPosition != ::engine.local.mousePressPosition
+    &&  ::engine.local.mousePrevPosition != ::engine.local.mousePressPosition)
     {
         ::engine.local.rotation += orientedAngle(   glm::normalize(mouseCurPosition - ::engine.local.mousePressPosition),
                                                     glm::normalize(::engine.local.mousePrevPosition - ::engine.local.mousePressPosition));

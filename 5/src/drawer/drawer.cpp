@@ -18,8 +18,8 @@ extern engine::Engine   engine;
 void Drawer::start(void)
 {
     pthread_setname_np(handle.native_handle(), "Drawer");
-    log.debug("Starting drawer");
 
+    log.debug("Starting drawer");
     glfwMakeContextCurrent(::engine.gl.window);
     if(glewInit() != GLEW_OK)
     {
@@ -38,7 +38,7 @@ void Drawer::start(void)
 
     loadShaders();
 
-    log.debug("Creating lod tables");
+    log.debug("Creating %d level of detail tables", TILE_DENSITY_BITS);
     glGenBuffers(TILE_DENSITY_BITS, ::engine.gl.lodIndices);
     const uint32_t density = (1 << TILE_DENSITY_BITS) + 1;
     for(int l = 0; l < TILE_DENSITY_BITS; ++ l)
@@ -69,7 +69,7 @@ void Drawer::start(void)
         delete[] indice;
     }
 
-    log.debug("Creating loading mesh");
+    log.debug("Creating background mesh");
     objects::Position mesh[32768];
     int p = 0;
     for(int l = 0; l < 8192; ++ l)
@@ -91,54 +91,55 @@ void Drawer::start(void)
 
 void Drawer::run(void)
 {
-    int lod = 0;
     log.debug("Running drawer");
-    double lastFrame = 0;
-    double _counter = 0;
-    int _c = 0;
-    int _good = 0;
-    int _bad = 0;
-    while(state == Thread::STARTED)
+
+    int             adaptive    = 0;
+    unsigned int    good        = 0;
+    unsigned int    bad         = 0;
+
+    double  lastFrame   = 0;
+    double  fps         = 0;
+    for(unsigned int c = 0; state == Thread::STARTED; ++ c)
     {
+        ::engine.updateViewport();
         lastFrame = glfwGetTime();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawTerrain(::engine.local.lod ? ::engine.local.lod : lod);
+        drawTerrain(::engine.local.lod ? ::engine.local.lod : adaptive);
         glfwSwapBuffers(::engine.gl.window);
 
-        double currentFrame = glfwGetTime();
-        double diff = currentFrame - lastFrame;
-
-        _counter += diff;
-        ++ _c;
-        if(_c == 10 * DRAWER_FPS)
+        double  currentFrame    = glfwGetTime();
+        double  diff            = currentFrame - lastFrame;
+        fps += diff;
+        if(c == 10 * DRAWER_FPS)
         {
-            log.debug("Current FPS: %.3lf", _c / _counter);
-            _c = 0;
-            _counter = 0;
+            log.debug("Current FPS: %.3lf", c / fps);
+            c = fps = 0;
         }
 
-        if(diff < 1.0L / DRAWER_FPS)
+        if(diff < 1.0 / DRAWER_FPS)
         {
-            _bad = 0;
-            if(++ _good == 10 * DRAWER_FPS)
+            bad = 0;
+            if(++ good == 10 * DRAWER_FPS)
             {
-                _good = 0;
-                lod = max(0, lod - 1);
+                good = 0;
+                adaptive = max(0, adaptive - 1);
+                log.debug("ADAPTIVE-: %d", adaptive);
             }
 
-            this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0L / (DRAWER_FPS - 1) - diff * 1000.0L)));
+            this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0 / (DRAWER_FPS - 1) - diff * 1000.0)));
         }
 
-        else if(diff > 1.0L / (DRAWER_FPS - 1))
+        else if(diff > 1.0 / (DRAWER_FPS - 1))
         {
-            _good = 0;
-            if(++ _bad == DRAWER_FPS / 10)
+            good = 0;
+            if(++ bad == DRAWER_FPS / 10)
             {
-                _bad = 0;
-                lod = min(lod + 1, TILE_DENSITY_BITS);
+                bad = 0;
+                adaptive = min(adaptive + 1, TILE_DENSITY_BITS);
+                log.debug("ADAPTIVE+: %d", adaptive);
             }
 
-            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, ::engine.local.lod ? ::engine.local.lod : lod);
+            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, ::engine.local.lod ? ::engine.local.lod : adaptive);
         }
     }
 }
@@ -155,16 +156,11 @@ inline
 void Drawer::drawTerrain(int lod)
 {
     drawFoundation();
-    ::engine.updateViewport();
+
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[lod]);
     for(int t = 0; t < 9; ++ t)
-    {
-        objects::Tile &tile = ::engine.local.tile[t];
-        if(tile.synchronized == objects::Tile::Status::DESYNCHRONIZED)
-            continue;
-
-        drawTile(tile, lod);
-    }
+        if(::engine.local.tile[t].synchronized != objects::Tile::Status::DESYNCHRONIZED)
+            drawTile(::engine.local.tile[t], lod);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
