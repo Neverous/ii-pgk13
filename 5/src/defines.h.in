@@ -1,6 +1,9 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
+// GLM
+#define GLM_FORCE_RADIANS   true
+
 // LIBS OPTS
 #define INLINE_BUILD    true
 

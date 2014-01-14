@@ -1,7 +1,8 @@
 #ifndef __ENGINE_H__
 #define __ENGINE_H__
 
-#include <map>
+#include <unordered_map>
+#include <vector>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -44,13 +45,16 @@ class Engine
 
     struct Local
     {
+        int32_t        width;
+        int32_t        height;
+
         TerrainPoint    buffer[(1 << TILE_DENSITY_BITS) * (1 << TILE_DENSITY_BITS)];
         Tile            tile[9];
 
         bool            viewType;
         uint8_t         lod;
         uint32_t        lodSize[TILE_DENSITY_BITS];
-        map<double, map<double, int32_t> > world;
+        unordered_map<int16_t, unordered_map<int16_t, vector<vector<uint16_t> > > > world;
 
         double          zoom;
         double          rotation;
@@ -91,6 +95,7 @@ class Engine
         static void glfwMouseMoveCallback(GLFWwindow *window, double x, double y);
         static void glfwWheelCallback(GLFWwindow *window, double x, double y);
         static void glfwWindowCloseCallback(GLFWwindow *window);
+        static void glfwWindowResizeCallback(GLFWwindow *window, int _width, int _height);
 }; // class Engine
 
 } // namespace engine

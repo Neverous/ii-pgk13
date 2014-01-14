@@ -16,11 +16,11 @@ namespace hgt
 
 class File
 {
-    uint8_t data[1201][1201][2];
+    int8_t data[1201][1201][2];
 
     public:
         File(const char *filename);
-        int32_t get(int x, int y);
+        int16_t get(int x, int y);
 }; // class File
 
 inline
@@ -40,10 +40,27 @@ File::File(const char *filename)
 }
 
 inline
-int32_t File::get(int x, int y)
+int16_t File::get(int x, int y)
 {
+    y = 1200 - y;
     assert(0 <= x && x <= 1200 && 0 <= y && y <= 1200);
-    return (int32_t) ((int32_t) data[y][x][1] << 16) + (int32_t) data[y][x][0];
+    union
+    {
+        int16_t word;
+        struct
+        {
+            int8_t byte1;
+            int8_t byte2;
+        };
+    } conv;
+
+    conv.byte1 = data[y][x][1];
+    conv.byte2 = data[y][x][0];
+    if(conv.word == -32768)
+        return -500;
+
+    assert(-500 <= conv.word && conv.word <= 9000);
+    return conv.word;
 }
 
 } // namespace hgt

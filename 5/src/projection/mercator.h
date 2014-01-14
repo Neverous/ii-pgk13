@@ -41,18 +41,18 @@ double latToMet(double lat)
 inline
 double metToLon(double x)
 {
-    return 180.0 * x / M_PI;
+    return 180.0 * x / EQUATORIAL_RADIUS / M_PI;
 }
 
 inline
 double metToLat(double y)
 {
-    double ts    = expf(-y / POLAR_RADIUS);
-    double phi   = M_PI_2 - 2.0 * atanf(ts);
-    double con   = ECCENT * sinf(phi);
+    double ts    = exp(-y / EQUATORIAL_RADIUS);
+    double phi   = M_PI_2 - 2.0 * atan(ts);
     double dphi  = 1.0;
     for(int i = 0; fabs(dphi) > 0.000000001 && i < 15; ++ i)
     {
+        double con = ECCENT * sin(phi);
         dphi = M_PI_2 - 2.0 * atan(ts * pow((1.0 - con) / (1.0 + con), COM)) - phi;
         phi += dphi;
     }

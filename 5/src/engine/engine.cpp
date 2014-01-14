@@ -31,6 +31,7 @@ Engine::Engine(Log &_debug)
     if(!glfwInit())
         throw runtime_error("GLFWInit error!");
 
+    glfwMakeContextCurrent(gl.window);
     glfwWindowHint(GLFW_VISIBLE,                false);
     if(!(gl.loader = glfwCreateWindow(1, 1, "loader", nullptr, nullptr)))
     {
@@ -39,7 +40,6 @@ Engine::Engine(Log &_debug)
     }
 
     glfwWindowHint(GLFW_VISIBLE,                true);
-    glfwWindowHint(GLFW_RESIZABLE,              false);
     glfwWindowHint(GLFW_SAMPLES,                4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,  2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,  0);
@@ -55,12 +55,15 @@ Engine::Engine(Log &_debug)
     }
 
     glfwSetWindowCloseCallback(gl.window, Engine::glfwWindowCloseCallback);
+    glfwSetFramebufferSizeCallback(gl.window, Engine::glfwWindowResizeCallback);
 
     glfwSetKeyCallback(gl.window,           Engine::glfwKeyCallback);
     glfwSetMouseButtonCallback(gl.window,   Engine::glfwMouseButtonCallback);
     glfwSetCursorPosCallback(gl.window,     Engine::glfwMouseMoveCallback);
     glfwSetScrollCallback(gl.window,        Engine::glfwWheelCallback);
 
+    local.width     = 800;
+    local.height    = 600;
     local.zoom = 1.0;
     local.eye = glm::dvec3(0.0, 0.0, 1.0);
     local.bound.maxX = local.bound.maxY = -32000000.0;
@@ -124,11 +127,11 @@ void Engine::loadMap(const char *path)
     {
         case 'n':
         case 'N':
-            lat *= -1;
             break;
 
         case 's':
         case 'S':
+            lat *= -1;
             break;
 
         default:
@@ -152,41 +155,44 @@ void Engine::loadMap(const char *path)
             break;
     }
 
-    log.debug("Square position %d %d", lon, lat);
+    vector<vector<uint16_t> > &chunk = local.world[lat][lon];
+    chunk.resize(1201);
+    for(int h = 0; h < 1201; ++ h)
+        chunk[h].resize(1201, 32768);
+
     hgt::File map(path);
-    for(int h = 0; h <= 1200; ++ h)
-        for(int w = 0; w <= 1200; ++ w)
+    for(int h = 0; h < 1201; ++ h)
+        for(int w = 0; w < 1201; ++ w)
         {
-            double x = mercator::lonToMet(lon + 1.0 * w / 1200);
-            double y = mercator::latToMet(lat + 1.0 * h / 1200);
+            double x = mercator::lonToMet(lon + 1.0 * w / 1200.0);
+            double y = mercator::latToMet(lat + 1.0 * h / 1200.0);
             local.bound.maxX = max(local.bound.maxX, x);
             local.bound.maxY = max(local.bound.maxY, y);
             local.bound.minX = min(local.bound.minX, x);
             local.bound.minY = min(local.bound.minY, y);
-            local.world[y][x] = map.get(w, h) + 900;
+            chunk[h][w] = map.get(w, h) + 500;
         }
 }
 
 inline
 void Engine::updateViewport(void)
 {
-    double wres = 400.0 / local.zoom;
-    double hres = 300.0 / local.zoom;
-    local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation, glm::dvec3(0.0, 0.0, 1.0));
-    //log.debug("VIEWPORT: %.3f %.3f %.3f %.3f ZOOM: %.3f ROTATION: %.3f", -wres, wres, -hres, hres, local.zoom, local.rotation);
+    glViewport(0, 0, local.width, local.height);
+    double wres = local.width / 2.0 / local.zoom;
+    double hres = local.height / 2.0 / local.zoom;
+    local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation * M_PI / 180.0, glm::dvec3(0.0, 0.0, 1.0));
 }
 
 inline
 void Engine::updateView(void)
 {
     local.view = glm::lookAt(local.eye, glm::dvec3(glm::dvec2(local.eye), 0.0), glm::dvec3(0.0, 1.0, 0.0));
-    //log.debug("VIEW: %.3f %.3f", local.eye.x, local.eye.y);
 }
 
 glm::dvec4 Engine::getView(void)
 {
-    double res = 500.0 / local.zoom;
-    return glm::dvec4(local.eye.x -res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
+    double res = sqrt(local.width * local.width + local.height * local.height) / 2.0 / local.zoom;
+    return glm::dvec4(local.eye.x - res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
 }
 
 /* GLFW CALLBACKS */
@@ -196,9 +202,61 @@ void Engine::glfwErrorCallback(int code, const char *message)
     ::engine.debug.error("GLFW", "Error %d: %s", code, message);
 }
 
-void Engine::glfwKeyCallback(GLFWwindow */*window*/, int/* key*/, int/* scancode*/, int/* action*/, int/* mods*/)
+void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, int action, int/* mods*/)
 {
-    ::engine.log.debug("Key cb");
+    switch(key)
+    {
+        case GLFW_KEY_ESCAPE:
+        case GLFW_KEY_Q:
+            if(action == GLFW_PRESS)
+                ::engine.terminate();
+
+            break;
+
+        case GLFW_KEY_W:
+        case GLFW_KEY_S:
+        case GLFW_KEY_A:
+        case GLFW_KEY_D:
+        case GLFW_KEY_LEFT:
+        case GLFW_KEY_RIGHT:
+        case GLFW_KEY_UP:
+        case GLFW_KEY_DOWN:
+            //if(::engine.local.viewType = VIEW_FPP)
+            //    ::engine.handleMovement(key, action);
+
+            break;
+
+        case GLFW_KEY_V:
+        case GLFW_KEY_TAB:
+            if(action == GLFW_PRESS)
+            {
+                ++ ::engine.local.viewType;
+                if(::engine.local.viewType == 2)
+                    ::engine.local.viewType = 0;
+
+            }
+
+            break;
+
+        case GLFW_KEY_KP_ADD:
+            if(action == GLFW_PRESS)
+                ::engine.local.lod = max(0, ::engine.local.lod - 1);
+
+            break;
+
+        case GLFW_KEY_KP_SUBTRACT:
+            if(action == GLFW_PRESS)
+                ::engine.local.lod = min(TILE_DENSITY_BITS - 1, ::engine.local.lod + 1);
+
+            break;
+    }
+}
+
+void Engine::glfwWindowResizeCallback(GLFWwindow */*window*/, int _width, int _height)
+{
+    ::engine.local.width    = _width;
+    ::engine.local.height   = _height;
+    ::engine.updateViewport();
 }
 
 void Engine::glfwMouseButtonCallback(GLFWwindow *window, int button, int action, int/* mods*/)
@@ -206,7 +264,6 @@ void Engine::glfwMouseButtonCallback(GLFWwindow *window, int button, int action,
     if(::engine.local.viewType != VIEW_MAP)
         return;
 
-    //::engine.log.debug("Button cb");
     if(action == GLFW_PRESS) switch(button)
     {
         case GLFW_MOUSE_BUTTON_LEFT:
@@ -246,11 +303,10 @@ void Engine::glfwMouseMoveCallback(GLFWwindow *window, double x, double y)
     &&  glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) != GLFW_PRESS)
         return;
 
-    //::engine.log.debug("Move cb");
     glm::dvec2 mouseCurPosition(x, y);
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        glm::dvec2 diff = glm::rotate(mouseCurPosition - ::engine.local.mousePrevPosition, ::engine.local.rotation) / ::engine.local.zoom;
+        glm::dvec2 diff = glm::rotate(mouseCurPosition - ::engine.local.mousePrevPosition, ::engine.local.rotation * M_PI / 180.0) / ::engine.local.zoom;
         diff.x *= -1;
 
         ::engine.local.eye += glm::dvec3(diff, 0.0);
@@ -279,7 +335,6 @@ void Engine::glfwWheelCallback(GLFWwindow */*window*/, double/* x*/, double y)
     if(::engine.local.viewType != VIEW_MAP)
         return;
 
-    //::engine.log.debug("Wheel cb");
     ::engine.local.zoom = min(10.0, max(0.0001, ::engine.local.zoom * powf(1.25, y)));
     ::engine.updateViewport();
 }

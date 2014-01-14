@@ -57,11 +57,9 @@ void Drawer::start(void)
                 indice[c ++] = current;
                 indice[c ++] = next;
                 indice[c ++] = current + lodStep;
-
                 indice[c ++] = current + lodStep;
                 indice[c ++] = next;
                 indice[c ++] = next + lodStep;
-
             }
 
         assert(c == ::engine.local.lodSize[l]);
@@ -126,7 +124,6 @@ void Drawer::run(void)
             {
                 _good = 0;
                 lod = max(0, lod - 1);
-                log.debug("LOD: %d", lod);
             }
 
             this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0L / (DRAWER_FPS - 1) - diff * 1000.0L)));
@@ -141,7 +138,7 @@ void Drawer::run(void)
                 lod = min(lod + 1, TILE_DENSITY_BITS);
             }
 
-            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, lod);
+            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, ::engine.local.lod ? ::engine.local.lod : lod);
         }
     }
 }
@@ -158,6 +155,7 @@ inline
 void Drawer::drawTerrain(int lod)
 {
     drawFoundation();
+    ::engine.updateViewport();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[lod]);
     for(int t = 0; t < 9; ++ t)
     {

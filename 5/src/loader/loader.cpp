@@ -10,17 +10,19 @@
 
 #include "engine/engine.h"
 #include "engine/objects.h"
+#include "projection/mercator.h"
 #include "libs/logger/logger.h"
 
 using namespace std;
 using namespace terrain;
 using namespace terrain::loader;
+using namespace terrain::projection;
 
 extern engine::Engine   engine;
 
 void Loader::start(void)
 {
-    pthread_setname_np(handle.native_handle(), "Drawer");
+    pthread_setname_np(handle.native_handle(), "Loader");
     log.debug("Starting loader");
     glfwMakeContextCurrent(::engine.gl.loader);
     if(glewInit() != GLEW_OK)
@@ -53,7 +55,7 @@ void Loader::run(void)
     while(state == Thread::STARTED)
     {
         lastFrame = glfwGetTime();
-        checkTiles();
+        checkTiles(::engine.local.zoom);
         glFlush();
 
         double currentFrame = glfwGetTime();
@@ -76,7 +78,7 @@ void Loader::terminate(void)
 }
 
 inline
-void Loader::checkTiles(void)
+void Loader::checkTiles(double zoom)
 {
     if(!::engine.gl.buffer[SWAPPING_BUFFER])
         return;
@@ -102,7 +104,9 @@ void Loader::checkTiles(void)
                 if(::engine.local.tile[t].synchronized != objects::Tile::Status::SYNCHRONIZED)
                 {
                     log.debug("Loading into %d", t);
-                    loadTile(::engine.local.tile[t], __id, tileSize);
+                    if(!loadTile(::engine.local.tile[t], __id, tileSize, zoom))
+                        return;
+
                     break;
                 }
         }
@@ -139,41 +143,97 @@ objects::Tile::ID Loader::getFirstTile(unsigned int &tileSize)
     glm::dvec4 view = ::engine.getView();
     tileSize = *lower_bound(divs, divs + 91, (view.y - view.x) * 3 / 5);
     objects::Tile::ID _id;
-    _id.h = min(64000000.0 - 3 * tileSize, max(0.0, 32000000.0 + view.z)) / tileSize;
     _id.w = min(64000000.0 - 3 * tileSize, max(0.0, 32000000.0 + view.x)) / tileSize;
+    _id.h = min(64000000.0 - 3 * tileSize, max(0.0, 32000000.0 + view.z)) / tileSize;
 
     return _id;
 }
 
 inline
-void Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize)
+bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize, double zoom)
 {
-    tile.id.d = _id.d;
-    tile.box.left   = -32000000.0 + _id.w * tileSize;
-    tile.box.right  = tile.box.left + tileSize;
-    tile.box.bottom = -32000000.0 + _id.h * tileSize;
-    tile.box.top    = tile.box.bottom + tileSize;
-    log.debug("Loading tile (%u, %u) [%.2f, %.2f, %.2f, %.2f] {%u}", tile.id.w, tile.id.h, tile.box.left, tile.box.right, tile.box.bottom, tile.box.top, tileSize);
-
     const uint32_t density = (1 << TILE_DENSITY_BITS) + 1;
     const uint32_t size = density * density;
-    static objects::TerrainPoint buffer[size] = {};
+    static objects::TerrainPoint buffer[size];
+    objects::Tile::ID ID;
+    objects::Tile::BoundingBox box;
+
+    ID.d = _id.d;
+    box.left   = -32000000.0 + _id.w * tileSize;
+    box.right  = box.left + tileSize;
+    box.bottom = -32000000.0 + _id.h * tileSize;
+    box.top    = box.bottom + tileSize;
+    log.debug("Loading tile (%u, %u) [%.2f, %.2f, %.2f, %.2f] {%u}", ID.w, ID.h, box.left, box.right, box.bottom, box.top, tileSize);
+
+    int16_t lon = -32768;
+    int16_t lat = -32768;
+
+    unordered_map<int16_t, vector<vector<uint16_t> > >  *row    = nullptr;
+    vector<vector<uint16_t> >                           *chunk  = nullptr;
     for(unsigned int h = 0; h < density; ++ h)
+    {
+        const double    y       = box.bottom + (box.top - box.bottom) * h / (density - 1);
+        const double    _lat    = mercator::metToLat(y);
+        const int16_t   __lat   = floor(_lat);
+        const int16_t   cy      = floor((_lat - __lat) * 1200);
+        assert(0 <= cy && cy <= 1200);
+        if(__lat != lat)
+        {
+            lat = __lat;
+            if(::engine.local.world.count(lat))
+                row = &::engine.local.world[lat];
+
+            else
+                row = nullptr;
+
+            chunk = nullptr;
+            lon = -32768;
+        }
+
         for(unsigned int w = 0; w < density; ++ w)
         {
-            buffer[h * density + w].x = w;
-            buffer[h * density + w].y = h;
-            buffer[h * density + w].height = 0;
+            const double    x       = box.left + (box.right - box.left) * w / (density - 1);
+            const double    _lon    = mercator::metToLon(x);
+            const int16_t   __lon   = floor(_lon);
+            const int16_t   cx      = floor((_lon - __lon) * 1200);
+            assert(0 <= cx && cx <= 1200);
+            if(__lon != lon)
+            {
+                lon = __lon;
+                if(row && row->count(lon))
+                    chunk = &(*row)[lon];
+
+                else
+                    chunk = nullptr;
+            }
+
+            assert(lon != -32768 && lat != -32768);
+
+            const uint32_t b = h * density + w;
+            assert(b < size);
+            buffer[b].x = w;
+            buffer[b].y = h;
+            buffer[b].height = chunk ? (*chunk)[cy][cx] : 32768;
+            if(zoom != ::engine.local.zoom)
+                return false;
         }
+    }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.buffer[SWAPPING_BUFFER]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(objects::TerrainPoint) * size, buffer, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+    tile.synchronized = objects::Tile::Status::DESYNCHRONIZED;
     swap(::engine.gl.buffer[SWAPPING_BUFFER], tile.buffer);
+    tile.id.d = ID.d;
+    tile.box.left   = box.left;
+    tile.box.right  = box.right;
+    tile.box.bottom = box.bottom;
+    tile.box.top    = box.top;
 
     tile.zoom           = ::engine.local.zoom;
     tile.synchronized   = objects::Tile::Status::SYNCHRONIZED;
+    return true;
 }
 
 Loader::Loader(Log &_log)

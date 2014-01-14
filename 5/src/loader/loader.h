@@ -23,10 +23,10 @@ class Loader: public Thread
 
     void terminate(void);
 
-    void checkTiles(void);
+    void checkTiles(double zoom);
     void markInvalidTiles(const objects::Tile::ID &_id);
     objects::Tile::ID getFirstTile(unsigned int &tileSize);
-    void loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize);
+    bool loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize, double zoom);
 
     public:
         Loader(Log &_log);
