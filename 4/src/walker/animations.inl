@@ -107,19 +107,13 @@ void Animations::step(void)
         }
 
         { // HEAD
-            float _diff = 0.002f;
-            if(s % 40 >= 20)
-                _diff = -0.002f;
-
+            float _diff = 0.005f * sin(s / 10.0f);
             figure.position.y += _diff / _step * 4;
         }
 
 
         { // ARMS
-            float deg = 1.0f;
-            if(s % 40 >= 20)
-                deg = -1.0f;
-
+            float deg = 1.0f * sin(s / 10.0f);
             // RIGHT ARM
             figure.bone[6] = glm::rotate(figure.bone[6], deg / _step * 4, glm::vec3(1.0f, 0.0f, 0.0f));
             figure.bone[7] = glm::rotate(figure.bone[7], deg / _step * 4, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -130,10 +124,7 @@ void Animations::step(void)
         }
 
         { // LEGS
-            float deg = 1.0f;
-            if(s % 40 >= 20)
-                deg = -1.0f;
-
+            float deg = 1.0f * sin(s / 10.0f);
             // RIGHT LEG
             figure.bone[2] = glm::rotate(figure.bone[2], -deg / _step * 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -142,9 +133,7 @@ void Animations::step(void)
         }
 
         { // LEGS
-            float deg = 0.5f;
-            if(s % 40 >= 20)
-                deg = -0.5f;
+            float deg = 0.5f * sin(s / 10.0f);
 
             // RIGHT LEG
             figure.bone[3] = glm::rotate(figure.bone[3], -deg / _step, glm::vec3(1.0f, 0.0f, 0.0f));
