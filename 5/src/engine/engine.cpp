@@ -46,7 +46,7 @@ Engine::Engine(Log &_debug)
     // THREADS
     threads.drawer      = new drawer::Drawer(_debug, *this);
     //threads.loader      = new loader::Loader(_debug, *this);
-    //threads.movement    = new movement::Movement(_debug, *this);
+    threads.movement    = new movement::Movement(_debug, *this);
 
     // OPTIONS
     options.width       = 800;
@@ -444,6 +444,15 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
             {
                 options.lod = min(DETAIL_LEVELS - 1, options.lod + 1);
                 log.debug("LOD-: %d", options.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_0:
+            if(action == GLFW_PRESS)
+            {
+                options.lod = 0;
+                log.debug("LOD=: %d", options.lod);
             }
 
             break;

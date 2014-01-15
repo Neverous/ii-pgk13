@@ -15,7 +15,15 @@ using namespace std;
 using namespace terrain;
 using namespace terrain::movement;
 
-extern engine::Engine   engine;
+Movement::Movement(Log &_log, engine::Engine &_engine)
+:log(_log, "MOVEMENT")
+,engine(_engine)
+{
+}
+
+Movement::~Movement(void)
+{
+}
 
 void Movement::start(void)
 {
@@ -31,7 +39,7 @@ void Movement::run(void)
     while(state == Thread::STARTED)
     {
         lastFrame = glfwGetTime();
-        if(::engine.local.viewType == VIEW_FPP)
+        if(engine.options.viewType == ::engine::VIEW_3D)
             move();
 
         double currentFrame = glfwGetTime();
@@ -48,13 +56,13 @@ void Movement::run(void)
 inline
 void Movement::move(void)
 {
-    if(glfwGetKey(::engine.gl.window, GLFW_KEY_W) == GLFW_PRESS)
-        ::engine.local.eye += ::engine.local.viewpoint * 1000.0;
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_W) == GLFW_PRESS)
+        engine.local.d3d.eye += engine.local.d3d.direction * 1000.0;
 
-    if(glfwGetKey(::engine.gl.window, GLFW_KEY_S) == GLFW_PRESS)
-        ::engine.local.eye -= ::engine.local.viewpoint * 1000.0;
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_S) == GLFW_PRESS)
+        engine.local.d3d.eye -= engine.local.d3d.direction * 1000.0;
 
-    ::engine.updateView();
+    engine.updateView();
 }
 
 void Movement::stop(void)
@@ -65,11 +73,3 @@ void Movement::terminate(void)
 {
 }
 
-Movement::Movement(Log &_log)
-:log(_log, "MOVEMENT")
-{
-}
-
-Movement::~Movement(void)
-{
-}
