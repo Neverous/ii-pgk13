@@ -202,6 +202,11 @@ void Engine::updateView(void)
         return;
     }
 
+    /*
+    log.debug("SPACE EYE POSITION: %.2lf %.2lf %.2lf", space.eye.x, space.eye.y, space.eye.z);
+
+    local.view = glm::lookAt(space.eye, space.eye + local.viewpoint, local.up);
+    */
     local.view = glm::lookAt(local.eye, local.eye + local.viewpoint, local.up);
 }
 
@@ -213,7 +218,7 @@ glm::dvec4 Engine::getView(void)
         return glm::dvec4(local.eye.x - res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
     }
 
-    double res = sqrt(5000000.0 * 5000000.0 + local.eye.z * local.eye.z) / 2.0;
+    double res = sqrt(1000000.0 * 1000000.0 + local.eye.z * local.eye.z) / 2.0;
     return glm::dvec4(local.eye.x - res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
 }
 
@@ -371,26 +376,37 @@ void Engine::glfwWindowCloseCallback(GLFWwindow */*window*/)
 
 void Engine::changeViewType(void)
 {
-    ++ ::engine.local.viewType;
-    if(::engine.local.viewType == 2)
-        ::engine.local.viewType = 0;
+    ++ local.viewType;
+    if(local.viewType == 2)
+        local.viewType = 0;
 
 
-    if(::engine.local.viewType == VIEW_MAP)
+    if(local.viewType == VIEW_MAP)
     {
-        glfwSetInputMode(::engine.gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         local.eye.z = 1.0;
         updateViewport();
         updateView();
         return;
     }
 
-    glfwSetInputMode(::engine.gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPos(::engine.gl.window, local.width / 2.0, local.height / 2.0);
+    glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPos(gl.window, local.width / 2.0, local.height / 2.0);
     local.eye.z     = 10000.0;
     local.viewpoint = glm::dvec3(0.0, 1.0, 0.0);
     local.up        = glm::dvec3(0.0, 0.0, 1.0);
 
+    /*
+    double altitude = local.eye.z;
+    glm::dvec2 lonlat(mercator::metToLon(local.eye.x) * M_PI / 180.0, mercator::metToLat(local.eye.y) * M_PI / 180.0);
+    space.eye.x = mercator::EQUATORIAL_RADIUS * cos(lonlat.y) * cos(lonlat.x) + altitude * cos(lonlat.y) * cos(lonlat.x);
+    space.eye.y = mercator::EQUATORIAL_RADIUS * cos(lonlat.y) * sin(lonlat.x) + altitude * cos(lonlat.y) * sin(lonlat.x);
+    space.eye.z = mercator::EQUATORIAL_RADIUS * sin(lonlat.y) + altitude * sin(lonlat.y);
+
+    space.eye.x = 0;
+    space.eye.y = -10;
+    space.eye.z = 0;
+*/
     updateViewport();
     updateView();
 }

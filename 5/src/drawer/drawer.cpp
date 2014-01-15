@@ -174,6 +174,9 @@ void Drawer::drawTerrain(int lod)
 inline
 void Drawer::drawFoundation(void)
 {
+    if(::engine.local.viewType == VIEW_FPP)
+        return;
+
     glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);

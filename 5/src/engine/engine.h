@@ -17,6 +17,7 @@ namespace terrain
 
 namespace drawer { class Drawer; }
 namespace loader { class Loader; }
+namespace movement { class Movement; }
 
 namespace engine
 {
@@ -28,6 +29,7 @@ class Engine
 {
     friend class drawer::Drawer;
     friend class loader::Loader;
+    friend class movement::Movement;
 
     Log     &debug;
     Logger  log;
