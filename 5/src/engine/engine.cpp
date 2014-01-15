@@ -603,11 +603,8 @@ void Engine::mouseMove2D(double x, double y)
     glm::dvec2 cur(x, y);
     if(glfwGetMouseButton(gl.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) // Movement
     {
-        log.debug("Movement %.2lf %.2lf -> %.2lf %.2lf", local.mouse.prev.x, local.mouse.prev.y, x, y);
         glm::dvec3 diff = glm::rotate(local.d2d.rotation,
             glm::dvec3(cur - local.mouse.prev, 0.0)) / local.d2d.zoom;
-
-        log.debug("Movement %.2lf %.2lf %.2lf", diff.x, diff.y, diff.z);
 
         diff.x *= -1;
         local.d2d.eye += diff;

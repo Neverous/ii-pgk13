@@ -52,10 +52,10 @@ void Drawer::run(void)
     {
         engine.updateViewport();
         lastFrame = glfwGetTime();
-        lod = engine.options.lod ? engine.options.lod - 1 : adaptive;
+        lod = engine.options.lod ? (engine.options.lod - 1) * 10 : adaptive;
 
         glClear(GL_COLOR_BUFFER_BIT);
-        drawGrid(lod);
+        drawGrid(lod / 10);
         drawTerrain(lod);
         glfwSwapBuffers(engine.gl.window);
 
@@ -83,7 +83,7 @@ void Drawer::run(void)
             else if(diff > 1.0 / DRAWER_FPS && ++ slow >= 5)
             {
                 fast = slow = 0;
-                adaptive = min(adaptive + 1, DETAIL_LEVELS);
+                adaptive = min(adaptive + 1, DETAIL_LEVELS * 10);
                 log.debug("ADAPTIVE+: %d", adaptive);
             }
         }
@@ -230,12 +230,9 @@ void Drawer::generateGrid(void)
 inline
 void Drawer::drawTerrain(int lod)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[lod]);
     for(uint8_t t = 0; t < 9; ++ t)
         if(engine.local.tile[t].valid)
-            drawTile(engine.local.tile[t], lod);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            drawTile(engine.local.tile[t], max(0, lod + t - 9) / 10);
 }
 
 inline
@@ -261,6 +258,7 @@ void Drawer::drawGrid(int lod)
 inline
 void Drawer::drawTile(const objects::Tile &tile, int lod)
 {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[lod]);
     glBindBuffer(GL_ARRAY_BUFFER, tile.buffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
@@ -275,6 +273,7 @@ void Drawer::drawTile(const objects::Tile &tile, int lod)
     glUseProgram(0);
     glDisableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 inline
