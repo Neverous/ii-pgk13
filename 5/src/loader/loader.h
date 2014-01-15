@@ -4,6 +4,7 @@
 #include "libs/logger/logger.h"
 #include "libs/thread/thread.h"
 
+#include "engine/engine.h"
 #include "engine/objects.h"
 
 namespace terrain
@@ -14,23 +15,26 @@ namespace loader
 
 class Loader: public Thread
 {
-    Logger log;
-    uint32_t divs[128];
-
-    void start(void);
-    void run(void);
-    void stop(void);
-
-    void terminate(void);
-
-    void checkTiles(double zoom);
-    void markInvalidTiles(const objects::Tile::ID &_id);
-    objects::Tile::ID getFirstTile(uint32_t &tileSize);
-    bool loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize, double zoom);
+    Logger          log;
+    engine::Engine  &engine;
+    uint32_t        divs[128];
 
     public:
-        Loader(Log &_log);
+        Loader(Log &_log, engine::Engine &_engine);
         ~Loader(void);
+
+    protected:
+        void start(void);
+        void run(void);
+        void stop(void);
+
+        void terminate(void);
+
+    private:
+        void checkTiles(void);
+        void markInvalidTiles(const objects::Tile::ID &_id, uint32_t tileSize);
+        objects::Tile::ID getFirstTile(uint32_t &tileSize);
+        bool loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize);
 }; // class Loader
 
 } // namespace loader

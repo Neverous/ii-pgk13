@@ -45,7 +45,7 @@ Engine::Engine(Log &_debug)
 
     // THREADS
     threads.drawer      = new drawer::Drawer(_debug, *this);
-    //threads.loader      = new loader::Loader(_debug, *this);
+    threads.loader      = new loader::Loader(_debug, *this);
     threads.movement    = new movement::Movement(_debug, *this);
 
     // OPTIONS
