@@ -38,7 +38,7 @@ void Movement::run(void)
         double diff = currentFrame - lastFrame;
 
         if(diff < 1.0L / MOVEMENT_FPS)
-            this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0L / (MOVEMENT_FPS - 1) - diff * 1000.0L)));
+            this_thread::sleep_for(chrono::milliseconds(static_cast<uint32_t>(1000.0L / (MOVEMENT_FPS - 1) - diff * 1000.0L)));
 
         else if(diff > 1.0L / (MOVEMENT_FPS - 1))
             log.warning("Checking tiles took: %.4lfs", diff);

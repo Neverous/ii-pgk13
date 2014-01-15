@@ -25,6 +25,7 @@ class File
 
 inline
 File::File(const char *filename)
+:data()
 {
     int fd = open(filename, O_RDONLY);
     if(fd == -1)

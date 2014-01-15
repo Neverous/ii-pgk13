@@ -151,7 +151,7 @@ void Log::message(Level _level, const char *_name, const char *_fmt, va_list arg
     char output[1024] = {};
     auto now = system_clock::now();
     auto now_c = system_clock::to_time_t(now);
-    unsigned int millisec = duration_cast<milliseconds>(now.time_since_epoch()).count() % 1000;
+    uint32_t millisec = duration_cast<milliseconds>(now.time_since_epoch()).count() % 1000;
     int o = 0;
 
     o = strftime(output, 1023, "[%Y-%m-%d %H:%M:%S", localtime(&now_c));

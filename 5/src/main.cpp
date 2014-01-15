@@ -11,9 +11,6 @@
 #include "libs/thread/thread.h"
 
 #include "engine/engine.h"
-#include "drawer/drawer.h"
-#include "loader/loader.h"
-#include "movement/movement.h"
 
 using namespace std;
 
@@ -23,19 +20,12 @@ Log             debug;
 Logger          logger(debug, "MAIN");
 
 terrain::engine::Engine engine(debug);
-terrain::drawer::Drawer *drawer;
-terrain::loader::Loader *loader;
-terrain::movement::Movement *movement;
 
 void sigbreak(int signal);
 
 int main(int argc, char **argv)
 {
     debug.setLevel(Log::DEBUG);
-
-    drawer = new terrain::drawer::Drawer(debug);
-    loader = new terrain::loader::Loader(debug);
-    movement = new terrain::movement::Movement(debug);
 
     // Connect signals
     signal(SIGINT,  sigbreak);

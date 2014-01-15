@@ -6,11 +6,13 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "libs/logger/logger.h"
 #include "libs/thread/thread.h"
 
 #include "objects.h"
+#include "hgt/map.h"
 
 namespace terrain
 {
@@ -25,6 +27,28 @@ namespace engine
 using namespace std;
 using namespace terrain::objects;
 
+enum Buffers
+{
+    TILE_BUFFER_1   = 0,
+    TILE_BUFFER_2   = 1,
+    TILE_BUFFER_3   = 2,
+    TILE_BUFFER_4   = 3,
+    TILE_BUFFER_5   = 4,
+    TILE_BUFFER_6   = 5,
+    TILE_BUFFER_7   = 6,
+    TILE_BUFFER_8   = 7,
+    TILE_BUFFER_9   = 8,
+
+    GRID_BUFFER     = 9,
+    SWAP_BUFFER     = 10,
+}; // enum Buffers
+
+enum ViewType
+{
+    VIEW_2D = 0,
+    VIEW_3D = 1,
+}; // enum ViewType
+
 class Engine
 {
     friend class drawer::Drawer;
@@ -34,51 +58,90 @@ class Engine
     Log     &debug;
     Logger  log;
 
-    struct GL
+    struct Threads
     {
-        GLFWwindow  *loader;
-        GLFWwindow  *window;
-        GLuint      buffer[11];
-        GLuint      shaders[4];
-        GLuint      MVP[4];
-        GLuint      BOX[4];
-        GLuint      lodIndices[TILE_DENSITY_BITS];
-    } gl;
+        drawer::Drawer      *drawer;
+        loader::Loader      *loader;
+        movement::Movement  *movement;
+    } threads;
+
+    struct Options
+    {
+        // WINDOW SIZE
+        int32_t     width;
+        int32_t     height;
+
+        uint8_t     lod;
+        ViewType    viewType;
+        double      fov;
+    } options;
 
     struct Local
     {
-        int32_t        width;
-        int32_t        height;
-
-        TerrainPoint    buffer[(1 << TILE_DENSITY_BITS) * (1 << TILE_DENSITY_BITS)];
         Tile            tile[9];
 
-        int8_t          viewType;
-        uint8_t         lod;
-        uint32_t        lodSize[TILE_DENSITY_BITS];
-        unordered_map<int16_t, unordered_map<int16_t, vector<vector<uint16_t> > > > world;
+        uint32_t        gridSize[DETAIL_LEVELS];
+        uint32_t        tileSize[DETAIL_LEVELS];
+        unordered_map<int16_t, unordered_map<int16_t, hgt::Map> > world;
 
-        double          zoom;
-        double          rotation;
-        glm::dmat4      projection;
+        struct D2D
+        {
+            double      zoom;
+            glm::dquat  rotation;
+            glm::dvec3  eye;
+            glm::dmat4  projection;
+            glm::dmat4  view;
+        } d2d;
 
-        glm::dvec3      eye;
-        glm::dvec3      viewpoint;
-        glm::dvec3      up;
-        glm::dmat4      view;
+        struct D3D
+        {
+            glm::dvec3  eye;
+            glm::dvec3  direction;
+            glm::dvec3  up;
+            glm::dmat4  projection;
+            glm::dmat4  view;
+        } d3d;
 
-        glm::dvec2      mousePressPosition;
-        glm::dvec2      mousePrevPosition;
+        struct Mouse
+        {
+            glm::dvec2  press;
+            glm::dvec2  prev;
+        } mouse;
 
         struct Bound
         {
-            double  minX;
-            double  maxX;
+            struct Min
+            {
+                double x;
+                double y;
+            } min;
 
-            double  minY;
-            double  maxY;
+            struct Max
+            {
+                double x;
+                double y;
+            } max;
         } bound;
     } local;
+
+    struct GL
+    {
+        // GLFW WINDOWS
+        GLFWwindow  *loader;
+        GLFWwindow  *window;
+
+        // SHADERS
+        GLuint      program[2][2];
+        GLuint      MVP[2][2];
+        GLuint      BOX[2][2];
+
+        // INDICES
+        GLuint      gridIndice[DETAIL_LEVELS];
+        GLuint      tileIndice[DETAIL_LEVELS];
+
+        // BUFFERS
+        GLuint      buffer[11];
+    } gl;
 
     public:
         Engine(Log &_debug);
@@ -89,19 +152,39 @@ class Engine
 
     private:
         void loadMap(const char *path);
-        void updateViewport(void);
-        void updateView(void);
-        glm::dvec4 getView(void);
+        void parseMapFilename(char *path, char *&filename, int32_t &lat, int32_t &lon);
 
-        static void glfwErrorCallback(int code, const char *message);
-        static void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
-        static void glfwMouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
-        static void glfwMouseMoveCallback(GLFWwindow *window, double x, double y);
-        static void glfwWheelCallback(GLFWwindow *window, double x, double y);
-        static void glfwWindowCloseCallback(GLFWwindow *window);
-        static void glfwWindowResizeCallback(GLFWwindow *window, int _width, int _height);
+        void updateViewport(void);
+        void updateViewport2D(void);
+        void updateViewport3D(void);
+
+        void updateView(void);
+        void updateView2D(void);
+        void updateView3D(void);
 
         void changeViewType(void);
+        void setupView2D(void);
+        void setupView3D(void);
+
+        glm::dvec4 getBoundingRect(void);
+        glm::dvec4 getBoundingRect2D(void);
+        glm::dvec4 getBoundingRect3D(void);
+
+        glm::mat4 getUniform(void);
+        glm::mat4 getUniform2D(void);
+        glm::mat4 getUniform3D(void);
+
+    public:
+        // GLFW CALLBACKS
+        void glfwErrorCallback(int code, const char *message);
+        void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+        void glfwMouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
+        void glfwMouseMoveCallback(GLFWwindow *window, double x, double y);
+        void mouseMove2D(double x, double y);
+        void mouseMove3D(double x, double y);
+        void glfwWheelCallback(GLFWwindow *window, double x, double y);
+        void glfwWindowCloseCallback(GLFWwindow *window);
+        void glfwWindowResizeCallback(GLFWwindow *window, int _width, int _height);
 }; // class Engine
 
 } // namespace engine

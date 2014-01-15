@@ -13,138 +13,86 @@ using namespace std;
 using namespace terrain;
 using namespace terrain::drawer;
 
-extern engine::Engine   engine;
+Drawer::Drawer(Log &_log, engine::Engine &_engine)
+:log(_log, "DRAWER")
+,engine(_engine)
+{
+}
+
+Drawer::~Drawer(void)
+{
+}
+
 
 void Drawer::start(void)
 {
     pthread_setname_np(handle.native_handle(), "Drawer");
 
     log.debug("Starting drawer");
-    glfwMakeContextCurrent(::engine.gl.window);
-    if(glewInit() != GLEW_OK)
-    {
-        glfwDestroyWindow(::engine.gl.window);
-        glfwTerminate();
+    setupGL();
+    loadPrograms();
+    generateTile();
+    generateGrid();
 
-        throw runtime_error("GLEWInit error");
-    }
-
-    glfwSwapInterval(0);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    glEnable(GL_MULTISAMPLE);
-
-    glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
-
-    glGenBuffers(11, ::engine.gl.buffer);
-    for(int t = 0; t < 9; ++ t)
-        ::engine.local.tile[t].buffer = ::engine.gl.buffer[t];
-
-    loadShaders();
-
-    log.debug("Creating %d level of detail tables", TILE_DENSITY_BITS);
-    glGenBuffers(TILE_DENSITY_BITS, ::engine.gl.lodIndices);
-    const uint32_t density = (1 << TILE_DENSITY_BITS) + 1;
-    for(int l = 0; l < TILE_DENSITY_BITS; ++ l)
-    {
-        const uint32_t  lodDensity = (1 << (TILE_DENSITY_BITS - l));
-        const uint32_t  lodStep    = (1 << l);
-        ::engine.local.lodSize[l] = lodDensity * lodDensity * 6;
-        uint32_t *indice = new uint32_t[::engine.local.lodSize[l]];
-        unsigned int c = 0;
-        for(unsigned int h = 0; h < lodDensity; ++ h)
-            for(unsigned int w = 0; w < lodDensity; ++ w)
-            {
-                uint32_t current    = h * density * lodStep + w * lodStep,
-                         next       = current + density * lodStep;
-
-                indice[c ++] = current;
-                indice[c ++] = next;
-                indice[c ++] = current + lodStep;
-                indice[c ++] = current + lodStep;
-                indice[c ++] = next;
-                indice[c ++] = next + lodStep;
-            }
-
-        assert(c == ::engine.local.lodSize[l]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[l]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, ::engine.local.lodSize[l] * sizeof(uint32_t), indice, GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        delete[] indice;
-    }
-
-    log.debug("Creating background mesh");
-    objects::Position mesh[32768];
-    int p = 0;
-    for(int l = 0; l < 8192; ++ l)
-    {
-        mesh[p ++] = objects::Position(-32000000.0, 32000000.0 - l * 64000000.0 / 8191, 0.0);
-        mesh[p ++] = objects::Position(32000000.0, 32000000.0 - l * 64000000.0 / 8191, 0.0);
-    }
-
-    for(int l = 0; l < 8192; ++ l)
-    {
-        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, 32000000.0, 0.0);
-        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, -32000000.0, 0.0);
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(objects::Position) * 32768, mesh, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    log.notice("Started drawer");
 }
 
 void Drawer::run(void)
 {
     log.debug("Running drawer");
 
-    int             adaptive    = 0;
-    unsigned int    good        = 0;
-    unsigned int    bad         = 0;
+    uint8_t adaptive    = 0;
+    uint8_t lod         = 0;
+    uint8_t fast        = 0;
 
     double  lastFrame   = 0;
     double  fps         = 0;
-    for(unsigned int c = 0; state == Thread::STARTED; ++ c)
+    for(uint16_t c = 0; state == Thread::STARTED; ++ c)
     {
-        ::engine.updateViewport();
+        engine.updateViewport();
         lastFrame = glfwGetTime();
-        glClear(GL_COLOR_BUFFER_BIT);
-        drawTerrain(::engine.local.lod ? ::engine.local.lod : adaptive);
-        glfwSwapBuffers(::engine.gl.window);
+        lod = engine.options.lod ? engine.options.lod - 1 : adaptive;
 
-        double  currentFrame    = glfwGetTime();
-        double  diff            = currentFrame - lastFrame;
+        glClear(GL_COLOR_BUFFER_BIT);
+        drawGrid(lod);
+        drawTerrain(lod);
+        glfwSwapBuffers(engine.gl.window);
+
+        const double    currentFrame    = glfwGetTime();
+        const double    diff            = currentFrame - lastFrame;
         fps += diff;
-        if(c == 10 * DRAWER_FPS)
+
+        // FRAMES COUNTER
+        if(fps >= 2.0 || c >= 240)
         {
             log.debug("Current FPS: %.3lf", c / fps);
             c = fps = 0;
         }
 
-        if(diff < 1.0 / DRAWER_FPS)
+        // ADAPTIVE LOD
+        if(!engine.options.lod)
         {
-            bad = 0;
-            if(++ good == 10 * DRAWER_FPS)
+            if(diff <= 1.0 / DRAWER_FPS && ++ fast == DRAWER_FPS)
             {
-                good = 0;
+                fast = 0;
                 adaptive = max(0, adaptive - 1);
                 log.debug("ADAPTIVE-: %d", adaptive);
             }
 
-            this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0 / (DRAWER_FPS - 1) - diff * 1000.0)));
-        }
-
-        else if(diff > 1.0 / (DRAWER_FPS - 1))
-        {
-            good = 0;
-            if(++ bad == DRAWER_FPS / 10)
+            else if(diff > 1.0 / DRAWER_FPS)
             {
-                bad = 0;
-                adaptive = min(adaptive + 1, TILE_DENSITY_BITS);
+                fast = 0;
+                adaptive = min(adaptive + 1, DETAIL_LEVELS);
                 log.debug("ADAPTIVE+: %d", adaptive);
             }
-
-            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, ::engine.local.lod ? ::engine.local.lod : adaptive);
         }
+
+        // FRAMES LIMIT (~60fps)
+        if(diff <= 1.0 / DRAWER_FPS)
+            this_thread::sleep_for(chrono::milliseconds(static_cast<uint32_t>(1000.0 / (DRAWER_FPS - 1) - diff * 1000.0)));
+
+        else
+            log.warning("Rendering frame took: %.4lfs [LOD: %d]", diff, lod);
     }
 }
 
@@ -156,58 +104,172 @@ void Drawer::terminate(void)
 {
 }
 
+
 inline
-unsigned int Drawer::getProgram(int program)
+void Drawer::setupGL(void)
 {
-    return program + (::engine.local.viewType == VIEW_MAP ? MAP_PROGRAM : FLY_PROGRAM);
+    log.debug("Setting up GL");
+    glfwMakeContextCurrent(engine.gl.window);
+    if(glewInit() != GLEW_OK)
+    {
+        glfwDestroyWindow(engine.gl.window);
+        glfwTerminate();
+
+        throw runtime_error("GLEWInit error");
+    }
+
+    glfwSwapInterval(0);
+    // GL
+    //// INDICES
+    glGenBuffers(DETAIL_LEVELS, engine.gl.gridIndice);
+    glGenBuffers(DETAIL_LEVELS, engine.gl.tileIndice);
+    glGenBuffers(11, engine.gl.buffer);
+    for(int t = 0; t < 9; ++ t)
+        engine.local.tile[t].buffer = engine.gl.buffer[t];
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+
+    glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
+}
+
+inline
+void Drawer::generateTile(void)
+{
+    log.debug("Creating %d levels of detail tables for tiles", DETAIL_LEVELS);
+    const uint32_t density = (1 << DETAIL_LEVELS) + 1;
+    for(int l = 0; l < DETAIL_LEVELS; ++ l)
+    {
+        const uint32_t  tileDensity = (1 << (DETAIL_LEVELS - l));
+        const uint32_t  tileStep    = (1 << l);
+        engine.local.tileSize[l]     = tileDensity * tileDensity * 6;
+        uint32_t *indice = new uint32_t[engine.local.tileSize[l]];
+        uint32_t c = 0;
+        for(uint16_t h = 0; h < tileDensity; ++ h)
+            for(uint16_t w = 0; w < tileDensity; ++ w)
+            {
+                uint32_t current    = density * tileStep * h + tileStep * w,
+                         next       = current + density * tileStep;
+
+                indice[c ++] = current + tileStep;
+                indice[c ++] = next;
+                indice[c ++] = current;
+
+                indice[c ++] = next + tileStep;
+                indice[c ++] = next;
+                indice[c ++] = current + tileStep;
+            }
+
+        assert(c == engine.local.tileSize[l]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[l]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, c * sizeof(uint32_t), indice, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        delete[] indice;
+    }
+}
+
+inline
+void Drawer::generateGrid(void)
+{
+    log.debug("Creating background grid");
+    const uint32_t density = (1 << DETAIL_LEVELS) + 1;
+    {
+        objects::Position   *point = new objects::Position[density * density];
+        uint32_t p = 0;
+        for(uint16_t h = 0; h < density; ++ h)
+            for(uint16_t w = 0; w < density; ++ w)
+            {
+                point[p ++] = objects::Position(
+                    -32000000.0 + w * 64000000.0 / (density - 1),
+                    -32000000.0 + h * 64000000.0 / (density - 1),
+                    0.0);
+            }
+
+        assert(p == density * density);
+        glBindBuffer(GL_ARRAY_BUFFER, engine.gl.buffer[engine::GRID_BUFFER]);
+        glBufferData(GL_ARRAY_BUFFER, p * sizeof(objects::Position), point, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        delete[] point;
+    }
+
+    log.debug("Creating %d levels of detail tables for grid", DETAIL_LEVELS);
+    for(int l = 0; l < DETAIL_LEVELS; ++ l)
+    {
+        const uint32_t  gridDensity = (1 << (DETAIL_LEVELS - l)) + 1;
+        const uint32_t  gridStep    = (1 << l);
+        engine.local.gridSize[l]     = gridDensity * (gridDensity - 1) * 4;
+        uint32_t *indice = new uint32_t[engine.local.gridSize[l]];
+        uint32_t c = 0;
+        for(uint16_t h = 0; h < gridDensity; ++ h)
+            for(uint16_t w = 0; w < gridDensity - 1; ++ w)
+            {
+                uint32_t current    = density * gridStep * h + gridStep * w;
+                indice[c ++] = current;
+                indice[c ++] = current + gridStep;
+            }
+
+        for(uint16_t w = 0; w < gridDensity; ++ w)
+            for(uint16_t h = 0; h < gridDensity - 1; ++ h)
+            {
+                uint32_t current    = density * gridStep * h + gridStep * w,
+                         next       = current + density * gridStep;
+
+                indice[c ++] = current;
+                indice[c ++] = next;
+            }
+
+        assert(c == engine.local.gridSize[l]);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.gridIndice[l]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, c * sizeof(uint32_t), indice, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        delete[] indice;
+    }
 }
 
 inline
 void Drawer::drawTerrain(int lod)
 {
-    drawFoundation();
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ::engine.gl.lodIndices[lod]);
-    for(int t = 0; t < 9; ++ t)
-        if(::engine.local.tile[t].synchronized != objects::Tile::Status::DESYNCHRONIZED)
-            drawTile(::engine.local.tile[t], lod);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[lod]);
+    for(uint8_t t = 0; t < 9; ++ t)
+        if(engine.local.tile[t].valid)
+            drawTile(engine.local.tile[t], lod);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 inline
-void Drawer::drawFoundation(void)
+void Drawer::drawGrid(int lod)
 {
-    if(::engine.local.viewType == VIEW_FPP)
-        return;
-
-    glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.gridIndice[lod]);
+    glBindBuffer(GL_ARRAY_BUFFER, engine.gl.buffer[engine::GRID_BUFFER]);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glUseProgram(::engine.gl.shaders[getProgram(LOADING_PROGRAM)]);
-    glm::mat4 uniform = glm::mat4(::engine.local.projection * ::engine.local.view);
-    glUniformMatrix4fv(::engine.gl.MVP[getProgram(LOADING_PROGRAM)], 1, GL_FALSE, &uniform[0][0]);
+    glUseProgram(getProgram(GRID_PROGRAM));
 
-    glDrawArrays(GL_LINES, 0, 32768);
+    glm::mat4 uniform = engine.getUniform();
+    glUniformMatrix4fv(getMVP(GRID_PROGRAM), 1, GL_FALSE, &uniform[0][0]);
+
+    glDrawElements(GL_LINES, engine.local.gridSize[lod], GL_UNSIGNED_INT, nullptr);
 
     glUseProgram(0);
     glDisableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 inline
-void Drawer::drawTile(objects::Tile &tile, int lod)
+void Drawer::drawTile(const objects::Tile &tile, int lod)
 {
     glBindBuffer(GL_ARRAY_BUFFER, tile.buffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
-    glUseProgram(::engine.gl.shaders[getProgram(TILE_PROGRAM)]);
+    glUseProgram(getProgram(TILE_PROGRAM));
 
-    glm::mat4 uniform   = glm::mat4(::engine.local.projection * ::engine.local.view);
-    glm::vec4 box(tile.box.left, tile.box.right, tile.box.bottom, tile.box.top);
-    glUniformMatrix4fv(::engine.gl.MVP[getProgram(TILE_PROGRAM)], 1, GL_FALSE, &uniform[0][0]);
-    glUniform4fv(::engine.gl.BOX[getProgram(TILE_PROGRAM)], 1, &box.x);
-    glDrawElements(GL_TRIANGLES, ::engine.local.lodSize[lod], GL_UNSIGNED_INT, nullptr);
+    glm::mat4 uniform = engine.getUniform();
+    glUniformMatrix4fv(getMVP(TILE_PROGRAM), 1, GL_FALSE, &uniform[0][0]);
+    glUniform4fv(getBOX(TILE_PROGRAM), 1, &tile.box.x);
+
+    glDrawElements(GL_TRIANGLES, engine.local.tileSize[lod], GL_UNSIGNED_INT, nullptr);
 
     glUseProgram(0);
     glDisableVertexAttribArray(0);
@@ -215,187 +277,124 @@ void Drawer::drawTile(objects::Tile &tile, int lod)
 }
 
 inline
-void Drawer::loadShaders(void)
+void Drawer::loadPrograms(void)
 {
-    ::engine.gl.shaders[MAP_PROGRAM + LOADING_PROGRAM] = loadShader("src/shaders/map/loadVertex.glsl", "src/shaders/map/loadFragment.glsl");
-    ::engine.gl.MVP[MAP_PROGRAM + LOADING_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + LOADING_PROGRAM], "MVP");
+    log.debug("Loading programs");
+    engine.gl.program[engine::VIEW_2D][GRID_PROGRAM] = loadProgram("src/shaders/2d/grid.vertex.glsl", "src/shaders/2d/grid.fragment.glsl");
+    engine.gl.MVP[engine::VIEW_2D][GRID_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_2D][GRID_PROGRAM], "MVP");
 
-    ::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM] = loadShader("src/shaders/map/mapVertex.glsl", "src/shaders/map/mapFragment.glsl");
-    ::engine.gl.MVP[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "MVP");
-    ::engine.gl.BOX[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "box");
+    engine.gl.program[engine::VIEW_2D][TILE_PROGRAM] = loadProgram("src/shaders/2d/tile.vertex.glsl", "src/shaders/2d/tile.fragment.glsl");
+    engine.gl.MVP[engine::VIEW_2D][TILE_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_2D][TILE_PROGRAM], "MVP");
+    engine.gl.BOX[engine::VIEW_2D][TILE_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_2D][TILE_PROGRAM], "box");
 
-    ::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM] = loadShader("src/shaders/fly/loadVertex.glsl", "src/shaders/fly/loadFragment.glsl");
-    ::engine.gl.MVP[FLY_PROGRAM + LOADING_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM], "MVP");
+    engine.gl.program[engine::VIEW_3D][GRID_PROGRAM] = loadProgram("src/shaders/3d/grid.vertex.glsl", "src/shaders/3d/grid.fragment.glsl");
+    engine.gl.MVP[engine::VIEW_3D][GRID_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_3D][GRID_PROGRAM], "MVP");
 
-    ::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM] = loadShader("src/shaders/fly/mapVertex.glsl", "src/shaders/fly/mapFragment.glsl");
-    ::engine.gl.MVP[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "MVP");
-    ::engine.gl.BOX[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "box");
-}
-
-Drawer::Drawer(Log &_log)
-:log(_log, "DRAWER")
-{
-}
-
-Drawer::~Drawer(void)
-{
+    engine.gl.program[engine::VIEW_3D][TILE_PROGRAM] = loadProgram("src/shaders/3d/tile.vertex.glsl", "src/shaders/3d/tile.fragment.glsl");
+    engine.gl.MVP[engine::VIEW_3D][TILE_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_3D][TILE_PROGRAM], "MVP");
+    engine.gl.BOX[engine::VIEW_3D][TILE_PROGRAM] = glGetUniformLocation(engine.gl.program[engine::VIEW_3D][TILE_PROGRAM], "box");
 }
 
 inline
-GLuint Drawer::loadShader(const char *vertex, const char *fragment)
+GLuint Drawer::loadProgram(const char *vertex, const char *fragment)
 {
-    GLuint  vShader         = glCreateShader(GL_VERTEX_SHADER);
-    GLuint  fShader         = glCreateShader(GL_FRAGMENT_SHADER);
+    log.debug("Loading program %s %s", vertex, fragment);
+    GLuint  vShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint  fShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    // VERTEX SHADER
-    {
-        char    *vShaderCode    = nullptr;
-        FILE*   vShaderFile     = fopen(vertex, "rb");
-        if(!vShaderFile)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
+    loadShader(vShader, vertex);
+    loadShader(fShader, fragment);
 
-            throw runtime_error("Cannot load vertex shader file");
-        }
+    log.debug("Linking shaders into program");
 
-        fseek(vShaderFile, 0, SEEK_END);
-        unsigned int bytes = ftell(vShaderFile);
-
-        fseek(vShaderFile, 0, SEEK_SET);
-
-        vShaderCode = new char[bytes + 1];
-        if(!vShaderCode)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error("Insufficient memory to load vertex shader");
-        }
-
-        if(fread(vShaderCode, sizeof(char), bytes, vShaderFile) != bytes)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error("Couldn't read shader file");
-        }
-
-        vShaderCode[bytes] = 0;
-        fclose(vShaderFile);
-        vShaderFile = nullptr;
-
-        log.debug("Compiling shader: %s", vertex);
-        glShaderSource(vShader, 1, (const char **) &vShaderCode, nullptr);
-        glCompileShader(vShader);
-
-        GLint status = GL_FALSE;
-        int logLength;
-
-        glGetShaderiv(vShader, GL_COMPILE_STATUS, &status);
-        glGetShaderiv(vShader, GL_INFO_LOG_LENGTH, &logLength);
-
-        if(status == GL_FALSE)
-        {
-            char buffer[logLength];
-            glGetShaderInfoLog(vShader, logLength, nullptr, buffer);
-
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error(buffer);
-        }
-
-        delete[] vShaderCode;
-    }
-
-    // FRAGMENT SHADER
-    {
-        char    *fShaderCode    = nullptr;
-        FILE*   fShaderFile     = fopen(fragment, "rb");
-        if(!fShaderFile)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error("Cannot load fragment shader file");
-        }
-
-        fseek(fShaderFile, 0, SEEK_END);
-        unsigned int bytes = ftell(fShaderFile);
-
-        fseek(fShaderFile, 0, SEEK_SET);
-
-        fShaderCode = new char[bytes + 1];
-        if(!fShaderCode)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error("Insufficient memory to load fragment shader");
-        }
-
-        if(fread(fShaderCode, sizeof(char), bytes, fShaderFile) != bytes)
-        {
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error("Couldn't read shader file");
-        }
-
-        fShaderCode[bytes] = 0;
-        fclose(fShaderFile);
-        fShaderFile = nullptr;
-
-        log.debug("Compiling shader: %s", fragment);
-        glShaderSource(fShader, 1, (const char **) &fShaderCode, nullptr);
-        glCompileShader(fShader);
-
-        GLint status = GL_FALSE;
-        int logLength;
-
-        glGetShaderiv(fShader, GL_COMPILE_STATUS, &status);
-        glGetShaderiv(fShader, GL_INFO_LOG_LENGTH, &logLength);
-
-        if(status == GL_FALSE)
-        {
-            char buffer[logLength];
-            glGetShaderInfoLog(fShader, logLength, nullptr, buffer);
-
-            glfwDestroyWindow(::engine.gl.window);
-            glfwTerminate();
-
-            throw runtime_error(buffer);
-        }
-
-        delete[] fShaderCode;
-
-    }
-
-    log.debug("Linking program");
     GLuint shader = glCreateProgram();
     glAttachShader(shader, vShader);
     glAttachShader(shader, fShader);
     glLinkProgram(shader);
 
     GLint status = GL_FALSE;
-    int logLength;
-
     glGetProgramiv(shader, GL_LINK_STATUS, &status);
-    glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 
     if(status == GL_FALSE)
     {
+        GLint logLength = 0;
+        glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+
         char buffer[logLength];
-        glGetProgramInfoLog(vShader, logLength, nullptr, buffer);
-
-        glfwDestroyWindow(::engine.gl.window);
-        glfwTerminate();
-
-        throw runtime_error(buffer);
+        glGetProgramInfoLog(shader, logLength, nullptr, buffer);
+        throwError(buffer);
     }
 
     glDeleteShader(vShader);
     glDeleteShader(fShader);
     return shader;
+}
+
+inline
+void Drawer::loadShader(const GLuint shader, const char *filename)
+{
+    log.debug("Loading %s shader", filename);
+    FILE    *file   = fopen(filename, "rb");
+    if(!file)
+        throwError("Cannot open shader file");
+
+    fseek(file, 0, SEEK_END);
+    uint32_t bytes = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *code = new char[bytes + 1];
+    if(!code)
+        throwError("Insufficient memory to read shader");
+
+    if(fread(code, sizeof(char), bytes, file) != bytes)
+        throwError("Couldn't read shader");
+
+    code[bytes] = 0;
+    fclose(file);
+    file = nullptr;
+
+    log.debug("Compiling %s shader", filename);
+    glShaderSource(shader, 1, (const char **) &code, nullptr);
+    glCompileShader(shader);
+
+    GLint status = GL_FALSE;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    if(status == GL_FALSE)
+    {
+        GLint logLength = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+
+        char buffer[logLength];
+        glGetShaderInfoLog(shader, logLength, nullptr, buffer);
+        throwError(buffer);
+    }
+
+    delete[] code;
+}
+
+inline
+GLuint &Drawer::getProgram(int view)
+{
+    return engine.gl.program[engine.options.viewType][view];
+}
+
+inline
+GLuint &Drawer::getMVP(int view)
+{
+    return engine.gl.MVP[engine.options.viewType][view];
+}
+
+inline
+GLuint &Drawer::getBOX(int view)
+{
+    return engine.gl.BOX[engine.options.viewType][view];
+}
+
+inline
+void Drawer::throwError(const char *message)
+{
+    glfwDestroyWindow(engine.gl.window);
+    glfwTerminate();
+
+    throw runtime_error(message);
 }

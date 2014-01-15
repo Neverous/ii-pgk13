@@ -43,7 +43,7 @@ int parse<int>(const string &_in)
 
 template<>
 inline
-unsigned int parse<unsigned int>(const string &_in)
+uint32_t parse<uint32_t>(const string &_in)
 {
     int result = 0;
     sscanf(_in.c_str(), "%u", &result);

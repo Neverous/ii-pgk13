@@ -4,6 +4,7 @@
 #include "defines.h"
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 
 namespace terrain
 {
@@ -59,27 +60,14 @@ struct Tile
             uint32_t h;
             uint32_t w;
         };
-    } id;
+    }           id;
 
-    enum Status
-    {
-        SYNCHRONIZED    = 0,
-        DESYNCHRONIZED  = 1,
-        SCALED          = 2,
-    } synchronized;
+    bool        valid;
+    glm::vec4   box;
+    GLuint      buffer;
+    uint32_t    size;
 
-    struct BoundingBox
-    {
-        double   top;
-        double   left;
-        double   bottom;
-        double   right;
-    } box;
-
-    GLuint  buffer;
-    double   zoom;
-
-    Tile(uint64_t _id = 0, Status _synchronized = DESYNCHRONIZED, BoundingBox _box = {0, 0, 0, 0}, uint32_t _buffer = 0, double _zoom = 1.0);
+    Tile(uint64_t _id = 0, bool _valid = false, glm::dvec4 _box = glm::dvec4(), uint32_t _buffer = 0, uint32_t _size = 0);
 }; // struct Tile
 
 inline
@@ -152,11 +140,11 @@ TerrainPoint::TerrainPoint(uint16_t _x/* = 0*/, uint16_t _y/* = 0*/, uint16_t _h
 }
 
 inline
-Tile::Tile(uint64_t _id/* = 0*/, Status _synchronized/* = DESYNCHORNIZED*/, BoundingBox _box/* = {0, 0, 0, 0}*/, uint32_t _buffer/* = 0*/, double _zoom/* = 1.0*/)
-:synchronized(_synchronized)
+Tile::Tile(uint64_t _id/*= 0*/, bool _valid/* = false*/, glm::dvec4 _box/* = glm::dvec4()*/, uint32_t _buffer/* = 0*/, uint32_t _size/* = 0*/)
+:valid(_valid)
 ,box(_box)
 ,buffer(_buffer)
-,zoom(_zoom)
+,size(_size)
 {
     id.d = _id;
 }

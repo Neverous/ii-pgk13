@@ -64,7 +64,7 @@ void Loader::run(void)
         double diff = currentFrame - lastFrame;
 
         if(diff < 1.0L / LOADER_FPS)
-            this_thread::sleep_for(chrono::milliseconds(static_cast<unsigned int>(1000.0L / (LOADER_FPS - 1) - diff * 1000.0L)));
+            this_thread::sleep_for(chrono::milliseconds(static_cast<uint32_t>(1000.0L / (LOADER_FPS - 1) - diff * 1000.0L)));
 
         else if(diff > 1.0L / (LOADER_FPS - 1))
             log.warning("Checking tiles took: %.4lfs", diff);
@@ -85,7 +85,7 @@ void Loader::checkTiles(double zoom)
     if(!::engine.gl.buffer[SWAPPING_BUFFER])
         return;
 
-    unsigned int tileSize = 0;
+    uint32_t tileSize = 0;
     objects::Tile::ID _id = getFirstTile(tileSize);
     markInvalidTiles(_id);
 
@@ -128,7 +128,7 @@ void Loader::markInvalidTiles(const objects::Tile::ID &_id)
 }
 
 inline
-objects::Tile::ID Loader::getFirstTile(unsigned int &tileSize)
+objects::Tile::ID Loader::getFirstTile(uint32_t &tileSize)
 {
     glm::dvec4 view = ::engine.getView();
     tileSize = *lower_bound(divs, divs + 91, (int) ((view.y - view.x) * 3 / 5));
@@ -140,7 +140,7 @@ objects::Tile::ID Loader::getFirstTile(unsigned int &tileSize)
 }
 
 inline
-bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigned int tileSize, double zoom)
+bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize, double zoom)
 {
     const uint32_t density  = (1 << TILE_DENSITY_BITS) + 1;
     const uint32_t size     = density * density;
@@ -160,7 +160,7 @@ bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigne
 
     unordered_map<int16_t, vector<vector<uint16_t> > >  *row    = nullptr;
     vector<vector<uint16_t> >                           *chunk  = nullptr;
-    for(unsigned int h = 0; h < density; ++ h)
+    for(uint16_t h = 0; h < density; ++ h)
     {
         const double    y       = box.bottom + (box.top - box.bottom) * h / (density - 1);
         const double    _lat    = mercator::metToLat(y);
@@ -176,7 +176,7 @@ bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, unsigne
             lon     = -32768;
         }
 
-        for(unsigned int w = 0; w < density; ++ w)
+        for(uint16_t w = 0; w < density; ++ w)
         {
             const double    x       = box.left + (box.right - box.left) * w / (density - 1);
             const double    _lon    = mercator::metToLon(x);
