@@ -31,7 +31,6 @@ Engine::Engine(Log &_debug)
     if(!glfwInit())
         throw runtime_error("GLFWInit error!");
 
-    glfwMakeContextCurrent(gl.window);
     glfwWindowHint(GLFW_VISIBLE,                false);
     if(!(gl.loader = glfwCreateWindow(1, 1, "loader", nullptr, nullptr)))
     {
@@ -43,10 +42,6 @@ Engine::Engine(Log &_debug)
     glfwWindowHint(GLFW_SAMPLES,                4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,  2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,  0);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_MULTISAMPLE);
 
     if(!(gl.window = glfwCreateWindow(800, 600, "terrain", nullptr, gl.loader)))
     {
@@ -65,7 +60,7 @@ Engine::Engine(Log &_debug)
     local.width         = 800;
     local.height        = 600;
     local.zoom          = 1.0;
-    local.eye           = glm::dvec3(0.0, 0.0, 1.0);
+    local.eye           = glm::dvec3(0.0, 0.0, 10000.0);
     local.bound.maxX    = local.bound.maxY = -32000000.0;
     local.bound.minX    = local.bound.minY = 32000000.0;
 
@@ -85,7 +80,7 @@ void Engine::run(int argc, char **argv)
     for(int a = 1; a < argc; ++ a)
         loadMap(argv[a]);
 
-    local.eye = glm::dvec3((local.bound.maxX + local.bound.minX) / 2.0, (local.bound.maxY + local.bound.minY) / 2.0, 1.0);
+    local.eye = glm::dvec3((local.bound.maxX + local.bound.minX) / 2.0, (local.bound.maxY + local.bound.minY) / 2.0, 10000.0);
     updateView();
 
     threads.activate();
@@ -182,7 +177,7 @@ void Engine::updateViewport(void)
     {
         double wres = local.width / 2.0 / local.zoom;
         double hres = local.height / 2.0 / local.zoom;
-        local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation * M_PI / 180.0, glm::dvec3(0.0, 0.0, 1.0));
+        local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, -1.0, 11000.0), local.rotation * M_PI / 180.0, glm::dvec3(0.0, 0.0, 1.0));
         return;
     }
 
@@ -384,7 +379,7 @@ void Engine::changeViewType(void)
     if(local.viewType == VIEW_MAP)
     {
         glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        local.eye.z = 1.0;
+        local.eye.z = 10000.0;
         updateViewport();
         updateView();
         return;

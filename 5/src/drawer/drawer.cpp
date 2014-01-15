@@ -30,6 +30,10 @@ void Drawer::start(void)
     }
 
     glfwSwapInterval(0);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glEnable(GL_MULTISAMPLE);
+
     glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
 
     glGenBuffers(11, ::engine.gl.buffer);
@@ -74,14 +78,14 @@ void Drawer::start(void)
     int p = 0;
     for(int l = 0; l < 8192; ++ l)
     {
-        mesh[p ++] = objects::Position(-32000000.0, 32000000.0 - l * 64000000.0 / 8191);
-        mesh[p ++] = objects::Position(32000000.0, 32000000.0 - l * 64000000.0 / 8191);
+        mesh[p ++] = objects::Position(-32000000.0, 32000000.0 - l * 64000000.0 / 8191, 0.0);
+        mesh[p ++] = objects::Position(32000000.0, 32000000.0 - l * 64000000.0 / 8191, 0.0);
     }
 
     for(int l = 0; l < 8192; ++ l)
     {
-        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, 32000000.0);
-        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, -32000000.0);
+        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, 32000000.0, 0.0);
+        mesh[p ++] = objects::Position(-32000000.0 + l * 64000000.0 / 8191, -32000000.0, 0.0);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
@@ -103,7 +107,7 @@ void Drawer::run(void)
     {
         ::engine.updateViewport();
         lastFrame = glfwGetTime();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
         drawTerrain(::engine.local.lod ? ::engine.local.lod : adaptive);
         glfwSwapBuffers(::engine.gl.window);
 
