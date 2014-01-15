@@ -6,6 +6,6 @@ attribute vec3 vertexPosition;
 
 void main()
 {
-    vec4 vertex = vec4(vertexPosition, 1);
+    vec4 vertex = vec4(vertexPosition, 1.0);
     gl_Position = MVP * vertex;
 }

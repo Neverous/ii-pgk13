@@ -178,20 +178,42 @@ inline
 void Engine::updateViewport(void)
 {
     glViewport(0, 0, local.width, local.height);
-    double wres = local.width / 2.0 / local.zoom;
-    double hres = local.height / 2.0 / local.zoom;
-    local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation * M_PI / 180.0, glm::dvec3(0.0, 0.0, 1.0));
+    if(local.viewType == VIEW_MAP)
+    {
+        double wres = local.width / 2.0 / local.zoom;
+        double hres = local.height / 2.0 / local.zoom;
+        local.projection = glm::rotate(glm::ortho(-wres, wres, -hres, hres, 0.0, 10.0), local.rotation * M_PI / 180.0, glm::dvec3(0.0, 0.0, 1.0));
+        return;
+    }
+
+    local.projection = glm::perspective(
+        45.0,
+        1.0 * local.width / local.height,
+        0.1,
+        640000000.0);
 }
 
 inline
 void Engine::updateView(void)
 {
-    local.view = glm::lookAt(local.eye, glm::dvec3(glm::dvec2(local.eye), 0.0), glm::dvec3(0.0, 1.0, 0.0));
+    if(local.viewType == VIEW_MAP)
+    {
+        local.view = glm::lookAt(local.eye, glm::dvec3(glm::dvec2(local.eye), 0.0), glm::dvec3(0.0, 1.0, 0.0));
+        return;
+    }
+
+    local.view = glm::lookAt(local.eye, local.eye + local.viewpoint, local.up);
 }
 
 glm::dvec4 Engine::getView(void)
 {
-    double res = sqrt(local.width * local.width + local.height * local.height) / 2.0 / local.zoom;
+    if(local.viewType == VIEW_MAP)
+    {
+        double res = sqrt(local.width * local.width + local.height * local.height) / 2.0 / local.zoom;
+        return glm::dvec4(local.eye.x - res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
+    }
+
+    double res = sqrt(5000000.0 * 5000000.0 + local.eye.z * local.eye.z) / 2.0;
     return glm::dvec4(local.eye.x - res, local.eye.x + res, local.eye.y - res, local.eye.y + res);
 }
 
@@ -212,28 +234,10 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
 
             break;
 
-        case GLFW_KEY_W:
-        case GLFW_KEY_S:
-        case GLFW_KEY_A:
-        case GLFW_KEY_D:
-        case GLFW_KEY_LEFT:
-        case GLFW_KEY_RIGHT:
-        case GLFW_KEY_UP:
-        case GLFW_KEY_DOWN:
-            //if(::engine.local.viewType = VIEW_FPP)
-            //    ::engine.handleMovement(key, action);
-
-            break;
-
         case GLFW_KEY_V:
         case GLFW_KEY_TAB:
             if(action == GLFW_PRESS)
-            {
-                ++ ::engine.local.viewType;
-                if(::engine.local.viewType == 2)
-                    ::engine.local.viewType = 0;
-
-            }
+                ::engine.changeViewType();
 
             break;
 
@@ -300,7 +304,21 @@ void Engine::glfwMouseMoveCallback(GLFWwindow *window, double x, double y)
 {
     if(::engine.local.viewType == VIEW_FPP)
     {
-        ::engine.log.debug("Move cb");
+        y = max(0.0, min(1.0 * ::engine.local.height, y));
+        double horiz    = (::engine.local.width - x) / ::engine.local.width * M_PI;
+        double vert     = (::engine.local.height - y) / ::engine.local.height * M_PI - M_PI / 2;
+
+        ::engine.local.viewpoint = glm::dvec3(
+            cos(horiz) * cos(vert),
+            cos(vert) * sin(horiz),
+            sin(vert));
+
+        ::engine.local.up = glm::dvec3(
+                cos(horiz) * sin(vert),
+                sin(vert) * sin(horiz),
+                cos(vert));
+
+        ::engine.updateView();
         return;
     }
 
@@ -349,4 +367,30 @@ void Engine::glfwWheelCallback(GLFWwindow */*window*/, double/* x*/, double y)
 void Engine::glfwWindowCloseCallback(GLFWwindow */*window*/)
 {
     ::engine.terminate();
+}
+
+void Engine::changeViewType(void)
+{
+    ++ ::engine.local.viewType;
+    if(::engine.local.viewType == 2)
+        ::engine.local.viewType = 0;
+
+
+    if(::engine.local.viewType == VIEW_MAP)
+    {
+        glfwSetInputMode(::engine.gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        local.eye.z = 1.0;
+        updateViewport();
+        updateView();
+        return;
+    }
+
+    glfwSetInputMode(::engine.gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPos(::engine.gl.window, local.width / 2.0, local.height / 2.0);
+    local.eye.z     = 10000.0;
+    local.viewpoint = glm::dvec3(0.0, 1.0, 0.0);
+    local.up        = glm::dvec3(0.0, 0.0, 1.0);
+
+    updateViewport();
+    updateView();
 }

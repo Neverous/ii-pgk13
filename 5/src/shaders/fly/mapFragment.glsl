@@ -1,6 +1,6 @@
 #version 110
 
-ivarying vec3 fragmentColor;
+varying vec3 fragmentColor;
 
 void main()
 {

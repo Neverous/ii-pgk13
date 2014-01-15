@@ -153,6 +153,12 @@ void Drawer::terminate(void)
 }
 
 inline
+unsigned int Drawer::getProgram(int program)
+{
+    return program + (::engine.local.viewType == VIEW_MAP ? MAP_PROGRAM : FLY_PROGRAM);
+}
+
+inline
 void Drawer::drawTerrain(int lod)
 {
     drawFoundation();
@@ -171,9 +177,9 @@ void Drawer::drawFoundation(void)
     glBindBuffer(GL_ARRAY_BUFFER, ::engine.gl.buffer[LOADING_BUFFER]);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glUseProgram(::engine.gl.shaders[MAP_PROGRAM + LOADING_PROGRAM]);
+    glUseProgram(::engine.gl.shaders[getProgram(LOADING_PROGRAM)]);
     glm::mat4 uniform = glm::mat4(::engine.local.projection * ::engine.local.view);
-    glUniformMatrix4fv(::engine.gl.MVP[MAP_PROGRAM + LOADING_PROGRAM], 1, GL_FALSE, &uniform[0][0]);
+    glUniformMatrix4fv(::engine.gl.MVP[getProgram(LOADING_PROGRAM)], 1, GL_FALSE, &uniform[0][0]);
 
     glDrawArrays(GL_LINES, 0, 32768);
 
@@ -188,12 +194,12 @@ void Drawer::drawTile(objects::Tile &tile, int lod)
     glBindBuffer(GL_ARRAY_BUFFER, tile.buffer);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
-    glUseProgram(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM]);
+    glUseProgram(::engine.gl.shaders[getProgram(TILE_PROGRAM)]);
 
     glm::mat4 uniform   = glm::mat4(::engine.local.projection * ::engine.local.view);
     glm::vec4 box(tile.box.left, tile.box.right, tile.box.bottom, tile.box.top);
-    glUniformMatrix4fv(::engine.gl.MVP[MAP_PROGRAM + TILE_PROGRAM], 1, GL_FALSE, &uniform[0][0]);
-    glUniform4fv(::engine.gl.BOX[MAP_PROGRAM + TILE_PROGRAM], 1, &box.x);
+    glUniformMatrix4fv(::engine.gl.MVP[getProgram(TILE_PROGRAM)], 1, GL_FALSE, &uniform[0][0]);
+    glUniform4fv(::engine.gl.BOX[getProgram(TILE_PROGRAM)], 1, &box.x);
     glDrawElements(GL_TRIANGLES, ::engine.local.lodSize[lod], GL_UNSIGNED_INT, nullptr);
 
     glUseProgram(0);
@@ -211,14 +217,12 @@ void Drawer::loadShaders(void)
     ::engine.gl.MVP[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "MVP");
     ::engine.gl.BOX[MAP_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[MAP_PROGRAM + TILE_PROGRAM], "box");
 
-    /*
     ::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM] = loadShader("src/shaders/fly/loadVertex.glsl", "src/shaders/fly/loadFragment.glsl");
     ::engine.gl.MVP[FLY_PROGRAM + LOADING_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + LOADING_PROGRAM], "MVP");
 
     ::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM] = loadShader("src/shaders/fly/mapVertex.glsl", "src/shaders/fly/mapFragment.glsl");
     ::engine.gl.MVP[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "MVP");
     ::engine.gl.BOX[FLY_PROGRAM + TILE_PROGRAM] = glGetUniformLocation(::engine.gl.shaders[FLY_PROGRAM + TILE_PROGRAM], "box");
-    */
 }
 
 Drawer::Drawer(Log &_log)

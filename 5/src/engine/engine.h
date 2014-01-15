@@ -51,20 +51,22 @@ class Engine
         TerrainPoint    buffer[(1 << TILE_DENSITY_BITS) * (1 << TILE_DENSITY_BITS)];
         Tile            tile[9];
 
-        bool            viewType;
+        int8_t          viewType;
         uint8_t         lod;
         uint32_t        lodSize[TILE_DENSITY_BITS];
         unordered_map<int16_t, unordered_map<int16_t, vector<vector<uint16_t> > > > world;
 
         double          zoom;
         double          rotation;
-        glm::dmat4       projection;
+        glm::dmat4      projection;
 
-        glm::dvec3       eye;
-        glm::dmat4       view;
+        glm::dvec3      eye;
+        glm::dvec3      viewpoint;
+        glm::dvec3      up;
+        glm::dmat4      view;
 
-        glm::dvec2       mousePressPosition;
-        glm::dvec2       mousePrevPosition;
+        glm::dvec2      mousePressPosition;
+        glm::dvec2      mousePrevPosition;
 
         struct Bound
         {
@@ -96,6 +98,8 @@ class Engine
         static void glfwWheelCallback(GLFWwindow *window, double x, double y);
         static void glfwWindowCloseCallback(GLFWwindow *window);
         static void glfwWindowResizeCallback(GLFWwindow *window, int _width, int _height);
+
+        void changeViewType(void);
 }; // class Engine
 
 } // namespace engine

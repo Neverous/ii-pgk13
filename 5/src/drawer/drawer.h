@@ -32,6 +32,8 @@ class Drawer: public Thread
     public:
         Drawer(Log &_log);
         ~Drawer(void);
+
+        unsigned int getProgram(int program);
 }; // class Drawer
 
 } // namespace drawer
