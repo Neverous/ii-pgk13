@@ -245,7 +245,7 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
             if(action == GLFW_PRESS)
             {
                 ::engine.local.lod = max(0, ::engine.local.lod - 1);
-                ::engine.log.debug("LDO+: %d", ::engine.local.lod);
+                ::engine.log.debug("LOD+: %d", ::engine.local.lod);
             }
 
             break;
@@ -254,7 +254,88 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
             if(action == GLFW_PRESS)
             {
                 ::engine.local.lod = min(TILE_DENSITY_BITS - 1, ::engine.local.lod + 1);
-                ::engine.log.debug("LDO-: %d", ::engine.local.lod);
+                ::engine.log.debug("LOD-: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_1:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 1;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_2:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 2;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_3:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 3;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_4:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 4;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_5:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 5;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_6:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 6;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_7:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 7;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_8:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 8;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
+            }
+
+            break;
+
+        case GLFW_KEY_9:
+            if(action == GLFW_PRESS)
+            {
+                ::engine.local.lod = 9;
+                ::engine.log.debug("LOD=: %d", ::engine.local.lod);
             }
 
             break;
