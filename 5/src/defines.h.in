@@ -8,7 +8,7 @@
 #define INLINE_BUILD        true
 
 // DETAIL SETTINGS
-#define DETAIL_LEVELS       11
+#define DETAIL_LEVELS       10
 
 // FPS CONFIG
 #define LOADER_FPS          60

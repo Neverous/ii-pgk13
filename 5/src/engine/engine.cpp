@@ -7,7 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include "glm/vector_angle.h"
+#include <glm/gtx/vector_angle.hpp>
 
 #include "hgt/file.h"
 #include "hgt/map.h"
@@ -58,7 +58,7 @@ Engine::Engine(Log &_debug)
     // LOCAL
     //// 2D
     local.d2d.zoom      = 1.0;
-    local.d2d.rotation  = glm::angleAxis(0.0, glm::dvec3(0.0, 0.0, 0.0));
+    local.d2d.rotation  = glm::angleAxis(0.0, glm::dvec3(0.0, 0.0, 1.0));
     local.d2d.eye       = glm::dvec3(0.0, 0.0, 10000.0);
 
     //// 3D // FIXME: Project d3d into space
@@ -163,7 +163,7 @@ void Engine::loadMap(const char *path)
 
     for(int h = 0; h < 1201; ++ h)
         for(int w = 0; w < 1201; ++ w)
-            chunk.set(w, h, map.get(w, h) + 500);
+            chunk.set(w, h, map.get(w, h) + 1000);
 
     local.bound.max.x = max(local.bound.max.x, mercator::lonToMet(lon + 1));
     local.bound.max.y = max(local.bound.max.y, mercator::latToMet(lat + 1));
@@ -242,7 +242,7 @@ void Engine::updateViewport2D(void)
 {
     double wres = options.width / 2.0 / local.d2d.zoom;
     double hres = options.height / 2.0 / local.d2d.zoom;
-    local.d2d.projection = glm::ortho(-wres, wres, -hres, hres, 0.0, 11000.0) * glm::mat4_cast(local.d2d.rotation);
+    local.d2d.projection = glm::ortho(-wres, wres, -hres, hres, 0.0, 11000.0) * glm::toMat4(local.d2d.rotation);
 }
 
 inline
@@ -611,12 +611,13 @@ void Engine::mouseMove2D(double x, double y)
         updateView();
     }
 
-    if(glfwGetMouseButton(gl.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) // Rotation
+    if( glfwGetMouseButton(gl.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS
+    &&  local.mouse.press != cur && local.mouse.press != local.mouse.prev) // Rotation
     {
         log.debug("Rotation");
-        local.d2d.rotation *= glm::angleAxis(
-            glm::orientedAngle(cur - local.mouse.press, local.mouse.prev - local.mouse.press),
-            glm::dvec3(0.0, 0.0, 1.0));
+        local.d2d.rotation = glm::angleAxis(
+            glm::orientedAngle(glm::normalize(cur - local.mouse.press), glm::normalize(local.mouse.prev - local.mouse.press)),
+            glm::dvec3(0.0, 0.0, 1.0)) * local.d2d.rotation;
 
         updateViewport();
     }

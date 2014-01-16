@@ -42,10 +42,10 @@ float metToLat(float y)
 void main()
 {
     vec4 vertex = vec4(vertexPosition, 1);
-    vertex.x = box.x + (box.y - box.x) * vertex.x / 2048.0;
-    vertex.y = box.z + (box.w - box.z) * vertex.y / 2048.0;
+    vertex.x = box.x + (box.y - box.x) * vertex.x / 1024.0;
+    vertex.y = box.z + (box.w - box.z) * vertex.y / 1024.0;
     if(vertex.z == 32768.0)
-        vertex.z = 500.0;
+        vertex.z = -1000.0;
 /*
     vec4 spacepos;
     float altitude = 0.0;// vertex.z - 500.0;
@@ -56,7 +56,7 @@ void main()
 */
     gl_Position = MVP * vertex;
 
-    vertex.z -= 500.0;
+    vertex.z -= 1000.0;
     if(vertex.z < 0.0)
         fragmentColor = vec3(0.0, 0.0, 1.0);
 

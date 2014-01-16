@@ -58,9 +58,9 @@ int16_t File::get(int x, int y)
     conv.byte1 = data[y][x][1];
     conv.byte2 = data[y][x][0];
     if(conv.word == -32768)
-        return -500;
+        return -1000;
 
-    assert(-500 <= conv.word && conv.word <= 9000);
+    assert(-1000 <= conv.word && conv.word <= 9000);
     return conv.word;
 }
 

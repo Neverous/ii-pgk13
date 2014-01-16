@@ -40,7 +40,15 @@ enum Buffers
     TILE_BUFFER_9   = 8,
 
     GRID_BUFFER     = 9,
-    SWAP_BUFFER     = 10,
+    SWAP_BUFFER_1   = 10,
+    SWAP_BUFFER_2   = 11,
+    SWAP_BUFFER_3   = 12,
+    SWAP_BUFFER_4   = 13,
+    SWAP_BUFFER_5   = 14,
+    SWAP_BUFFER_6   = 15,
+    SWAP_BUFFER_7   = 16,
+    SWAP_BUFFER_8   = 17,
+    SWAP_BUFFER_9   = 18
 }; // enum Buffers
 
 enum ViewType
@@ -140,7 +148,7 @@ class Engine
         GLuint      tileIndice[DETAIL_LEVELS];
 
         // BUFFERS
-        GLuint      buffer[11];
+        GLuint      buffer[19];
     } gl;
 
     public:

@@ -90,7 +90,7 @@ void Loader::terminate(void)
 inline
 void Loader::checkTiles(void)
 {
-    if(!engine.gl.buffer[::engine::SWAP_BUFFER])
+    if(!engine.gl.buffer[::engine::SWAP_BUFFER_1])
         return;
 
     uint32_t tileSize = 0;
@@ -103,7 +103,17 @@ void Loader::checkTiles(void)
             objects::Tile::ID __id;
             __id.h = _id.h + engine.local.tile[t].order / 3;
             __id.w = _id.w + engine.local.tile[t].order % 3;
-            if(!loadTile(engine.local.tile[t], __id, tileSize))
+            if(!loadTile(t, __id, tileSize))
+                return;
+        }
+
+    for(int t = 0; t < 9; ++ t)
+        if(!engine.local.tile[t].valid)
+        {
+            objects::Tile::ID __id;
+            __id.h = _id.h + engine.local.tile[t].order / 3;
+            __id.w = _id.w + engine.local.tile[t].order % 3;
+            if(!swapTile(engine.local.tile[t], __id, tileSize, t))
                 return;
         }
 }
@@ -148,7 +158,7 @@ inline
 objects::Tile::ID Loader::getFirstTile(uint32_t &tileSize)
 {
     glm::dvec4 view = engine.getBoundingRect();
-    tileSize = *lower_bound(divs, divs + 91, (int) ((view.y - view.x) * 3 / 5));
+    tileSize = *lower_bound(divs, divs + 91, (int) (sqrt((view.y - view.x) * (view.y - view.x) + (view.w - view.z) * (view.w - view.z)) * 3 / 5));
     objects::Tile::ID _id;
     _id.w = max(0.0, min(64000000.0 - 3 * tileSize, 32000000.0 + view.x)) / tileSize;
     _id.h = max(0.0, min(64000000.0 - 3 * tileSize, 32000000.0 + view.z)) / tileSize;
@@ -157,7 +167,7 @@ objects::Tile::ID Loader::getFirstTile(uint32_t &tileSize)
 }
 
 inline
-bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize)
+bool Loader::loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize)
 {
     const uint32_t density  = (1 << DETAIL_LEVELS) + 1;
     const uint32_t size     = density * density;
@@ -217,16 +227,21 @@ bool Loader::loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_
         }
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.buffer[engine::SWAP_BUFFER]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.buffer[engine::SWAP_BUFFER_1 + t]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(objects::TerrainPoint) * size, buffer, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    return true;
+}
 
-    swap(engine.gl.buffer[engine::SWAP_BUFFER], tile.buffer);
-    tile.id.d   = ID.d;
-    tile.box.x  = box.x;
-    tile.box.y  = box.y;
-    tile.box.z  = box.z;
-    tile.box.w  = box.w;
+inline
+bool Loader::swapTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize, uint8_t t)
+{
+    swap(engine.gl.buffer[engine::SWAP_BUFFER_1 + t], tile.buffer);
+    tile.id.d   = _id.d;
+    tile.box.x  = -32000000.0 + _id.w * tileSize;
+    tile.box.y  = tile.box.x + tileSize;
+    tile.box.z  = -32000000.0 + _id.h * tileSize;
+    tile.box.w  = tile.box.z + tileSize;
 
     tile.size   = tileSize;
     tile.valid  = true;

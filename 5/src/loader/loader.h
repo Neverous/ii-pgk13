@@ -34,7 +34,8 @@ class Loader: public Thread
         void checkTiles(void);
         void markInvalidTiles(const objects::Tile::ID &_id, uint32_t tileSize);
         objects::Tile::ID getFirstTile(uint32_t &tileSize);
-        bool loadTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize);
+        bool loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize);
+        bool swapTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_t tileSize, uint8_t t);
 }; // class Loader
 
 } // namespace loader

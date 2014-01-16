@@ -124,7 +124,7 @@ void Drawer::setupGL(void)
     //// INDICES
     glGenBuffers(DETAIL_LEVELS, engine.gl.gridIndice);
     glGenBuffers(DETAIL_LEVELS, engine.gl.tileIndice);
-    glGenBuffers(11, engine.gl.buffer);
+    glGenBuffers(19, engine.gl.buffer);
     for(int t = 0; t < 9; ++ t)
     {
         engine.local.tile[t].order = t;
