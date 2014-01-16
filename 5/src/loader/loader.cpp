@@ -97,36 +97,51 @@ void Loader::checkTiles(void)
     objects::Tile::ID _id = getFirstTile(tileSize);
     markInvalidTiles(_id, tileSize);
 
-    for(int h = 0; h < 3; ++ h)
-        for(int w = 0; w < 3; ++ w)
+    for(int t = 0; t < 9; ++ t)
+        if(!engine.local.tile[t].valid)
         {
-            objects::Tile::ID __id = _id;
-            __id.w += w;
-            __id.h += h;
-
-            if(any_of(engine.local.tile, engine.local.tile + 9, [__id](const objects::Tile &tile) {return tile.id.d == __id.d && tile.valid;}))
-                continue;
-
-            objects::Tile *tile = find_if(engine.local.tile, engine.local.tile + 9, [](const objects::Tile &_tile) {return !_tile.valid;});
-            if(tile && tile != engine.local.tile + 9)
-            {
-                log.debug("Loading (%u %u) into %d tile", __id.w, __id.h, tile - engine.local.tile);
-                if(!loadTile(*tile, __id, tileSize))
-                    return;
-            }
+            objects::Tile::ID __id;
+            __id.h = _id.h + engine.local.tile[t].order / 3;
+            __id.w = _id.w + engine.local.tile[t].order % 3;
+            if(!loadTile(engine.local.tile[t], __id, tileSize))
+                return;
         }
 }
 
 inline
 void Loader::markInvalidTiles(const objects::Tile::ID &_id, uint32_t tileSize)
 {
+    bool used[9]    = {};
+    bool ordered[9] = {};
+    for(int h = 0; h < 3; ++ h)
+        for(int w = 0; w < 3; ++ w)
+        {
+            objects::Tile *tile = find_if(engine.local.tile, engine.local.tile + 9, [tileSize, _id, h, w](const objects::Tile &_tile) {return _tile.id.h == _id.h + h && _tile.id.w == _id.w + w && _tile.size == tileSize;});
+            if(tile && tile != engine.local.tile + 9)
+            {
+                tile->order = h * 3 + w;
+                used[h * 3 + w] = true;
+                ordered[tile - engine.local.tile] = true;
+            }
+        }
+
     for(int t = 0; t < 9; ++ t)
-    {
-        objects::Tile &tile = engine.local.tile[t];
-        tile.valid = tile.size == tileSize
-            &&  _id.h <= tile.id.h && tile.id.h <= _id.h + 2
-            &&  _id.w <= tile.id.w && tile.id.w <= _id.w + 2;
-    }
+        if(!ordered[t] && !used[engine.local.tile[t].order])
+        {
+            ordered[t] = true;
+            used[engine.local.tile[t].order] = true;
+            engine.local.tile[t].valid = false;
+        }
+
+    for(int t = 0; t < 9; ++ t)
+        for(int o = 0; !ordered[t] && o < 9; ++ o)
+            if(!used[o])
+            {
+                ordered[t] = true;
+                used[o] = true;
+                engine.local.tile[t].order = o;
+                engine.local.tile[t].valid = false;
+            }
 }
 
 inline

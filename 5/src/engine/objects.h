@@ -66,8 +66,9 @@ struct Tile
     glm::vec4   box;
     GLuint      buffer;
     uint32_t    size;
+    uint8_t     order;
 
-    Tile(uint64_t _id = 0, bool _valid = false, glm::dvec4 _box = glm::dvec4(), uint32_t _buffer = 0, uint32_t _size = 0);
+    Tile(uint64_t _id = 0, bool _valid = false, glm::dvec4 _box = glm::dvec4(), uint32_t _buffer = 0, uint32_t _size = 0, uint8_t _order = 0);
 }; // struct Tile
 
 inline
@@ -140,11 +141,12 @@ TerrainPoint::TerrainPoint(uint16_t _x/* = 0*/, uint16_t _y/* = 0*/, uint16_t _h
 }
 
 inline
-Tile::Tile(uint64_t _id/*= 0*/, bool _valid/* = false*/, glm::dvec4 _box/* = glm::dvec4()*/, uint32_t _buffer/* = 0*/, uint32_t _size/* = 0*/)
+Tile::Tile(uint64_t _id/*= 0*/, bool _valid/* = false*/, glm::dvec4 _box/* = glm::dvec4()*/, uint32_t _buffer/* = 0*/, uint32_t _size/* = 0*/, uint8_t _order/* = 0*/)
 :valid(_valid)
 ,box(_box)
 ,buffer(_buffer)
 ,size(_size)
+,order(_order)
 {
     id.d = _id;
 }

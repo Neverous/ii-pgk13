@@ -126,7 +126,10 @@ void Drawer::setupGL(void)
     glGenBuffers(DETAIL_LEVELS, engine.gl.tileIndice);
     glGenBuffers(11, engine.gl.buffer);
     for(int t = 0; t < 9; ++ t)
+    {
+        engine.local.tile[t].order = t;
         engine.local.tile[t].buffer = engine.gl.buffer[t];
+    }
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
@@ -231,8 +234,7 @@ inline
 void Drawer::drawTerrain(int lod)
 {
     for(uint8_t t = 0; t < 9; ++ t)
-        if(engine.local.tile[t].valid)
-            drawTile(engine.local.tile[t], max(0, lod + t - 9) / 10);
+        drawTile(engine.local.tile[t], max(0, lod + t - 9) / 10);
 }
 
 inline
