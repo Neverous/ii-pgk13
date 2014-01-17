@@ -184,8 +184,8 @@ void Drawer::generateGrid(void)
             for(uint16_t w = 0; w < density; ++ w)
             {
                 point[p ++] = objects::Position(
-                    -32000000.0 + w * 64000000.0 / (density - 1),
-                    -32000000.0 + h * 64000000.0 / (density - 1),
+                    -MERCATOR_BOUNDS + w * MERCATOR_BOUNDS * 2.0 / (density - 1),
+                    -MERCATOR_BOUNDS + h * MERCATOR_BOUNDS * 2.0 / (density - 1),
                     0.0);
             }
 

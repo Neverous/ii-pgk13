@@ -9,7 +9,6 @@ attribute float height;
 varying vec3 fragmentColor;
 
 /* PROJECTION */
-/*
 #define M_PI    3.14159265358979323846
 #define M_PI_2  1.57079632679489661923
 
@@ -38,7 +37,6 @@ float metToLat(float y)
 
     return 180.0 * phi / M_PI;
 }
-*/
 
 void main()
 {
@@ -49,15 +47,9 @@ void main()
     vertex.y = box.z + (box.w - box.z) * vertex.y / 1024.0;
     if(vertex.z == 32768.0)
         vertex.z = -1000.0;
-/*
-    vec4 spacepos;
-    float altitude = 0.0;// vertex.z - 500.0;
+
+    float altitude = vertex.z - 1000.0;
     vec2 lonlat = vec2(metToLon(vertex.x) * M_PI / 180.0, metToLat(vertex.y) * M_PI / 180.0);
-    spacepos.x = 6.0 * cos(lonlat.y) * cos(lonlat.x) + altitude * cos(lonlat.y) * cos(lonlat.x);
-    spacepos.y = 6.0 * cos(lonlat.y) * sin(lonlat.x) + altitude * cos(lonlat.y) * sin(lonlat.x);
-    spacepos.z = 6.0 * sin(lonlat.y) + altitude * sin(lonlat.y);
-*/
-    gl_Position = MVP * vertex;
 
     vertex.z -= 1000.0;
     if(vertex.z < 0.0)
@@ -74,4 +66,9 @@ void main()
 
     else
         fragmentColor = vec3(1.0, 1.0, 1.0);
+
+    vertex.x = EQUATORIAL_RADIUS * cos(lonlat.y) * cos(lonlat.x) + altitude * cos(lonlat.y) * cos(lonlat.x);
+    vertex.y = EQUATORIAL_RADIUS * cos(lonlat.y) * sin(lonlat.x) + altitude * cos(lonlat.y) * sin(lonlat.x);
+    vertex.z = EQUATORIAL_RADIUS * sin(lonlat.y) + altitude * sin(lonlat.y);
+    gl_Position = MVP * vertex;
 }

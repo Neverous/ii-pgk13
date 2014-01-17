@@ -8,6 +8,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/gtx/rotate_vector.hpp>
+
 #include "engine/engine.h"
 #include "libs/logger/logger.h"
 
@@ -56,11 +58,32 @@ void Movement::run(void)
 inline
 void Movement::move(void)
 {
+    const double speed = glfwGetKey(engine.gl.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? 100000.0 : 1000.0;
     if(glfwGetKey(engine.gl.window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.local.d3d.eye += engine.local.d3d.direction * 1000.0;
+        engine.local.d3d.eye += engine.local.d3d.direction * speed;
 
     if(glfwGetKey(engine.gl.window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.local.d3d.eye -= engine.local.d3d.direction * 1000.0;
+        engine.local.d3d.eye -= engine.local.d3d.direction * speed;
+
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_D) == GLFW_PRESS)
+        engine.local.d3d.eye -= engine.local.d3d.right * speed;
+
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_A) == GLFW_PRESS)
+        engine.local.d3d.eye += engine.local.d3d.right * speed;
+
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        engine.local.d3d.right  = glm::rotate(engine.local.d3d.right, -M_PI / 180.0, engine.local.d3d.direction);
+        engine.local.d3d.up     = glm::rotate(engine.local.d3d.up, -M_PI / 180.0, engine.local.d3d.direction);
+    }
+
+    if(glfwGetKey(engine.gl.window, GLFW_KEY_E) == GLFW_PRESS)
+    {
+        engine.local.d3d.right  = glm::rotate(engine.local.d3d.right, M_PI / 180.0, engine.local.d3d.direction);
+        engine.local.d3d.up     = glm::rotate(engine.local.d3d.up, M_PI / 180.0, engine.local.d3d.direction);
+    }
+
+
 
     engine.updateView();
 }

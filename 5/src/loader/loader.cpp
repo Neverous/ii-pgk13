@@ -42,20 +42,22 @@ void Loader::start(void)
         throw runtime_error("GLEWInit error");
     }
 
-    // divisiors of 64000000
+    // divisiors of MERCATOR_BOUNDS * 2.0
     int d = 0;
-    for(int t = 0; t < 13; ++ t)
+    for(int t = 0; t < TWO_POWER; ++ t)
     {
         divs[d ++] = (1 << t);
-        for(int f = 1; f < 7; ++ f)
+        for(int f = 1; f < FIVE_POWER; ++ f)
         {
             divs[d] = divs[d - 1] * 5;
             ++ d;
         }
     }
 
-    assert(d == 91);
-    sort(divs, divs + 91);
+    assert(d == TWO_POWER * FIVE_POWER);
+    for(int i = 0; i < d; ++ i)
+        log.debug("%d", divs[i]);
+    sort(divs, divs + d);
 }
 
 void Loader::run(void)
@@ -158,10 +160,10 @@ inline
 objects::Tile::ID Loader::getFirstTile(uint32_t &tileSize)
 {
     glm::dvec4 view = engine.getBoundingRect();
-    tileSize = *lower_bound(divs, divs + 91, (int) (sqrt((view.y - view.x) * (view.y - view.x) + (view.w - view.z) * (view.w - view.z)) * 3 / 5));
+    tileSize = *lower_bound(divs, divs + TWO_POWER * FIVE_POWER, (int) (sqrt((view.y - view.x) * (view.y - view.x) + (view.w - view.z) * (view.w - view.z)) * 3 / 5));
     objects::Tile::ID _id;
-    _id.w = max(0.0, min(64000000.0 - 3 * tileSize, 32000000.0 + view.x)) / tileSize;
-    _id.h = max(0.0, min(64000000.0 - 3 * tileSize, 32000000.0 + view.z)) / tileSize;
+    _id.w = max(0.0, min(MERCATOR_BOUNDS * 2.0 - 3 * tileSize, MERCATOR_BOUNDS + view.x)) / tileSize;
+    _id.h = max(0.0, min(MERCATOR_BOUNDS * 2.0 - 3 * tileSize, MERCATOR_BOUNDS + view.z)) / tileSize;
 
     return _id;
 }
@@ -176,11 +178,11 @@ bool Loader::loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize
     glm::vec4           box;
 
     ID.d    = _id.d;
-    box.x   = -32000000.0 + _id.w * tileSize;
+    box.x   = -MERCATOR_BOUNDS + _id.w * tileSize;
     box.y   = box.x + tileSize;
-    box.z   = -32000000.0 + _id.h * tileSize;
+    box.z   = -MERCATOR_BOUNDS + _id.h * tileSize;
     box.w   = box.z + tileSize;
-    log.debug("Tile (%u %u) box: [%.2f, %.2f, %.2f, %.2f]", ID.w, ID.h, box.x, box.y, box.z, box.w);
+    log.debug("Tile (%u %u) box: [%.2f, %.2f, %.2f, %.2f] size: %d", ID.w, ID.h, box.x, box.y, box.z, box.w, tileSize);
 
     int16_t lon = -32768;
     int16_t lat = -32768;
@@ -236,9 +238,9 @@ bool Loader::swapTile(objects::Tile &tile, const objects::Tile::ID &_id, uint32_
 {
     swap(engine.gl.buffer[engine::SWAP_BUFFER_1 + t], tile.buffer);
     tile.id.d   = _id.d;
-    tile.box.x  = -32000000.0 + _id.w * tileSize;
+    tile.box.x  = -MERCATOR_BOUNDS + _id.w * tileSize;
     tile.box.y  = tile.box.x + tileSize;
-    tile.box.z  = -32000000.0 + _id.h * tileSize;
+    tile.box.z  = -MERCATOR_BOUNDS + _id.h * tileSize;
     tile.box.w  = tile.box.z + tileSize;
 
     tile.size   = tileSize;

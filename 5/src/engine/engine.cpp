@@ -67,10 +67,10 @@ Engine::Engine(Log &_debug)
     local.d3d.up        = glm::dvec3(0.0, 0.0, 1.0);
 
     // BOUND
-    local.bound.min.x   = 32000000.0;
-    local.bound.min.y   = 32000000.0;
-    local.bound.max.x   = -32000000.0;
-    local.bound.max.y   = -32000000.0;
+    local.bound.min.x   = MERCATOR_BOUNDS;
+    local.bound.min.y   = MERCATOR_BOUNDS;
+    local.bound.max.x   = -MERCATOR_BOUNDS;
+    local.bound.max.y   = -MERCATOR_BOUNDS;
 
     // Connect glfw error handler
     glfwSetErrorCallback(GLFW_CALLBACK(glfwErrorCallback));
@@ -252,7 +252,7 @@ void Engine::updateViewport3D(void)
         options.fov,
         1.0 * options.width / options.height,
         0.1,
-        640000000.0);
+        40000000.0);
 }
 
 void Engine::updateView(void)
@@ -323,6 +323,10 @@ void Engine::setupView3D(void)
     glfwSetCursorPos(gl.window, options.width / 2.0, options.height / 2.0);
     // FIXME: project d2d into space
 
+    local.d3d.eye       = glm::dvec3(12000000.0, 0.0, 0.0);
+    local.d3d.direction = glm::dvec3(-1.0, 0.0, 0.0);
+    local.d3d.right     = glm::dvec3(0.0, -1.0, 0.0);
+    local.d3d.up        = glm::dvec3(0.0, 0.0, 1.0);
     /*
     double altitude = local.eye.z;
     glm::dvec2 lonlat(mercator::metToLon(local.eye.x) * M_PI / 180.0, mercator::metToLat(local.eye.y) * M_PI / 180.0);
@@ -369,6 +373,7 @@ inline
 glm::dvec4 Engine::getBoundingRect3D(void)
 {
     // TODO: project d3d.eye onto earth and count sth
+    return getBoundingRect2D();
     return glm::dvec4(-1.0, -1.0, -1.0, -1.0);
 }
 
@@ -417,7 +422,6 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
     switch(key)
     {
         case GLFW_KEY_ESCAPE:
-        case GLFW_KEY_Q:
             if(action == GLFW_PRESS)
                 terminate();
 
@@ -627,27 +631,14 @@ inline
 void Engine::mouseMove3D(double x, double y)
 {
     glfwSetCursorPos(gl.window, options.width / 2.0, options.height / 2.0);
-    x = max(0.0, min(1.0 * options.width, x));
-    y = max(0.0, min(1.0 * options.height, y));
-    // FIXME: sth is wrong here ^^
-    /*
-        double horiz    = (::engine.local.width - x) / ::engine.local.width * M_PI;
-        double vert     = (::engine.local.height - y) / ::engine.local.height * M_PI - M_PI / 2;
+    double horiz    = (options.width / 2.0 - x) * 0.01;
+    double vert     = (y - options.height / 2.0) * 0.01;
 
-        ::engine.local.viewpoint = glm::dvec3(
-            cos(horiz) * cos(vert),
-            cos(vert) * sin(horiz),
-            sin(vert));
+    local.d3d.right     = glm::rotate(local.d3d.right, horiz, local.d3d.up);
+    local.d3d.direction = glm::rotate(local.d3d.direction, horiz, local.d3d.up);
 
-        ::engine.local.up = glm::dvec3(
-                cos(horiz) * sin(vert),
-                sin(vert) * sin(horiz),
-                cos(vert));
-
-        ::engine.updateView();
-        return;
-        */
-
+    local.d3d.direction = glm::rotate(local.d3d.direction, vert, local.d3d.right);
+    local.d3d.up        = glm::rotate(local.d3d.up, vert, local.d3d.right);
     updateView();
 }
 
@@ -656,7 +647,7 @@ void Engine::glfwWheelCallback(GLFWwindow */*window*/, double/* x*/, double y)
     if(options.viewType != engine::VIEW_2D) // Mouse buttons inactive in flight mode
         return;
 
-    local.d2d.zoom = min(10.0, max(0.0001, local.d2d.zoom * pow(1.25, y)));
+    local.d2d.zoom = min(1.0, max(0.0001, local.d2d.zoom * pow(1.25, y)));
     updateViewport();
 }
 

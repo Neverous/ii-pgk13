@@ -104,6 +104,7 @@ class Engine
         struct D3D
         {
             glm::dvec3  eye;
+            glm::dvec3  right;
             glm::dvec3  direction;
             glm::dvec3  up;
             glm::dmat4  projection;

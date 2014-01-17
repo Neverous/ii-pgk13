@@ -9,6 +9,9 @@
 
 // DETAIL SETTINGS
 #define DETAIL_LEVELS       10
+#define MERCATOR_BOUNDS     20480000.0
+#define TWO_POWER           17
+#define FIVE_POWER          5
 
 // FPS CONFIG
 #define LOADER_FPS          60
