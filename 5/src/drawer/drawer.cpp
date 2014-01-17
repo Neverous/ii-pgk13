@@ -44,7 +44,6 @@ void Drawer::run(void)
     uint8_t adaptive    = 0;
     uint8_t lod         = 0;
     uint16_t fast       = 0;
-    uint16_t slow       = 0;
 
     double  lastFrame   = 0;
     double  fps         = 0;
@@ -73,16 +72,16 @@ void Drawer::run(void)
         // ADAPTIVE LOD
         if(!engine.options.lod)
         {
-            if(diff <= 1.0 / DRAWER_FPS && ++ fast >= 5 * DRAWER_FPS)
+            if(diff <= 1.0 / DRAWER_FPS && ++ fast >= DRAWER_FPS)
             {
-                fast = slow = 0;;
+                fast = 0;
                 adaptive = max(0, adaptive - 1);
                 log.debug("ADAPTIVE-: %d", adaptive);
             }
 
-            else if(diff > 1.0 / DRAWER_FPS && ++ slow >= 5)
+            else if(diff > 1.0 / DRAWER_FPS)
             {
-                fast = slow = 0;
+                fast = 0;
                 adaptive = min(adaptive + 1, DETAIL_LEVELS * 10);
                 log.debug("ADAPTIVE+: %d", adaptive);
             }
