@@ -43,11 +43,9 @@ struct Point: public Position, public Color
 
 struct TerrainPoint
 {
-    uint16_t    x;
-    uint16_t    y;
     uint16_t    height;
 
-    TerrainPoint(uint16_t _x = 0, uint16_t _y = 0, uint16_t _height = 0);
+    TerrainPoint(uint16_t _height = 0);
 }; // struct TerrainPoint
 
 struct Tile
@@ -133,10 +131,8 @@ Point::operator GLfloat *(void)
 }
 
 inline
-TerrainPoint::TerrainPoint(uint16_t _x/* = 0*/, uint16_t _y/* = 0*/, uint16_t _height/* = 0*/)
-:x(_x)
-,y(_y)
-,height(_height)
+TerrainPoint::TerrainPoint(uint16_t _height/* = 0*/)
+:height(_height)
 {
 }
 

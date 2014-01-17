@@ -263,7 +263,7 @@ void Drawer::drawTile(const objects::Tile &tile, int lod)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[lod]);
     glBindBuffer(GL_ARRAY_BUFFER, tile.buffer);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
+    glVertexAttribPointer(0, 1, GL_UNSIGNED_SHORT, GL_FALSE, 0, nullptr);
     glUseProgram(getProgram(TILE_PROGRAM));
 
     glm::mat4 uniform = engine.getUniform();

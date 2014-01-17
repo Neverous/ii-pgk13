@@ -221,8 +221,6 @@ bool Loader::loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize
             assert(lon != -32768 && lat != -32768);
 
             assert(b < size);
-            buffer[b].x = w;
-            buffer[b].y = h;
             buffer[b].height = chunk ? chunk->get(cx, cy) : 32768;
         }
     }

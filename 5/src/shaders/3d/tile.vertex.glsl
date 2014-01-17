@@ -1,9 +1,10 @@
-#version 110
+#version 120
+#extension GL_EXT_gpu_shader4: enable
 
 uniform vec4 box;
 uniform mat4 MVP;
 
-attribute vec3 vertexPosition;
+attribute float height;
 
 varying vec3 fragmentColor;
 
@@ -41,7 +42,9 @@ float metToLat(float y)
 
 void main()
 {
-    vec4 vertex = vec4(vertexPosition, 1);
+    int y = gl_VertexID / 1025;
+    int x = gl_VertexID - y * 1025;
+    vec4 vertex = vec4(x, y, height, 1);
     vertex.x = box.x + (box.y - box.x) * vertex.x / 1024.0;
     vertex.y = box.z + (box.w - box.z) * vertex.y / 1024.0;
     if(vertex.z == 32768.0)
