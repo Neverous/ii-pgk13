@@ -312,7 +312,7 @@ void Engine::setupView2D(void)
     glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glm::dvec3 eye = glm::normalize(local.d3d.eye) * mercator::EQUATORIAL_RADIUS;
     double lat = asin(eye.z / mercator::EQUATORIAL_RADIUS) * 180.0 / M_PI;
-    double lon = atan(eye.y / eye.x) * 180.0 / M_PI;
+    double lon = atan2(eye.y, eye.x) * 180.0 / M_PI;
     local.d2d.eye.x = mercator::lonToMet(lon);
     local.d2d.eye.y = mercator::latToMet(lat);
     local.d2d.eye.z = 10000.0;
@@ -370,10 +370,10 @@ glm::dvec4 Engine::getBoundingRect2D(void)
 inline
 glm::dvec4 Engine::getBoundingRect3D(void)
 {
-    double zoom = min(1.0, max(0.0001, 20.0 / (glm::length(local.d3d.eye) - mercator::EQUATORIAL_RADIUS)));
+    double zoom = min(1.0, max(0.0001, 25.0 / (glm::length(local.d3d.eye) - mercator::EQUATORIAL_RADIUS)));
     glm::dvec3 eye = glm::normalize(local.d3d.eye) * mercator::EQUATORIAL_RADIUS;
     double lat = asin(eye.z / mercator::EQUATORIAL_RADIUS) * 180.0 / M_PI;
-    double lon = atan(eye.y / eye.x) * 180.0 / M_PI;
+    double lon = atan2(eye.y, eye.x) * 180.0 / M_PI;
     eye.x = mercator::lonToMet(lon);
     eye.y = mercator::latToMet(lat);
 
