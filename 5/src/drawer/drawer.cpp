@@ -53,7 +53,7 @@ void Drawer::run(void)
         lastFrame = glfwGetTime();
         lod = engine.options.lod ? (engine.options.lod - 1) * 10 : adaptive;
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawGrid(lod / 10);
         drawTerrain(lod);
         glfwSwapBuffers(engine.gl.window);
@@ -132,6 +132,9 @@ void Drawer::setupGL(void)
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
 
     glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
 }

@@ -55,8 +55,6 @@ void Loader::start(void)
     }
 
     assert(d == TWO_POWER * FIVE_POWER);
-    for(int i = 0; i < d; ++ i)
-        log.debug("%d", divs[i]);
     sort(divs, divs + d);
 }
 

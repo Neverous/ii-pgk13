@@ -6,7 +6,7 @@ uniform mat4 MVP;
 
 attribute float height;
 
-varying vec3 fragmentColor;
+varying vec4 fragmentColor;
 
 /* PROJECTION */
 #define M_PI    3.14159265358979323846
@@ -46,29 +46,31 @@ void main()
     vertex.x = box.x + (box.y - box.x) * vertex.x / 1024.0;
     vertex.y = box.z + (box.w - box.z) * vertex.y / 1024.0;
     if(vertex.z == 32768.0)
-        vertex.z = -1000.0;
+        vertex.z = 0;
 
     float altitude = vertex.z - 1000.0;
     vec2 lonlat = vec2(metToLon(vertex.x) * M_PI / 180.0, metToLat(vertex.y) * M_PI / 180.0);
+    vertex.x = (EQUATORIAL_RADIUS + altitude) * cos(lonlat.y) * cos(lonlat.x);
+    vertex.y = (EQUATORIAL_RADIUS + altitude) * cos(lonlat.y) * sin(lonlat.x);
+    vertex.z = (EQUATORIAL_RADIUS + altitude) * sin(lonlat.y);
+    gl_Position = MVP * vertex;
 
-    vertex.z -= 1000.0;
-    if(vertex.z < 0.0)
-        fragmentColor = vec3(0.0, 0.0, 1.0);
+    float ht = height - 1000.0;
+    if(ht < 0.0)
+        fragmentColor = vec4(0.0, 0.0, 1.0, 1.0);
 
-    else if(vertex.z < 500.0)
-        fragmentColor = vec3(0.0, vertex.z / 500.0,    0.0);
+    else if(ht < 500.0)
+        fragmentColor = vec4(0.0, ht / 500.0, 0.0, 1.0);
 
-    else if(vertex.z < 1000.0)
-        fragmentColor = vec3(vertex.z / 500.0 - 1.0, 1.0, 0.0);
+    else if(ht < 1000.0)
+        fragmentColor = vec4(ht / 500.0 - 1.0, 1.0, 0.0, 1.0);
 
-    else if(vertex.z < 1500.0)
-        fragmentColor = vec3(1.0, 2.0 - vertex.z / 500.0, 0.0);
+    else if(ht < 1500.0)
+        fragmentColor = vec4(1.0, 2.0 - ht / 500.0, 0.0, 1.0);
+
+    else if(ht < 10000.0)
+        fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
 
     else
-        fragmentColor = vec3(1.0, 1.0, 1.0);
-
-    vertex.x = EQUATORIAL_RADIUS * cos(lonlat.y) * cos(lonlat.x) + altitude * cos(lonlat.y) * cos(lonlat.x);
-    vertex.y = EQUATORIAL_RADIUS * cos(lonlat.y) * sin(lonlat.x) + altitude * cos(lonlat.y) * sin(lonlat.x);
-    vertex.z = EQUATORIAL_RADIUS * sin(lonlat.y) + altitude * sin(lonlat.y);
-    gl_Position = MVP * vertex;
+        fragmentColor = vec4(0.0, 0.0, 0.0, 0.0);
 }

@@ -61,9 +61,10 @@ Engine::Engine(Log &_debug)
     local.d2d.rotation  = glm::angleAxis(0.0, glm::dvec3(0.0, 0.0, 1.0));
     local.d2d.eye       = glm::dvec3(0.0, 0.0, 10000.0);
 
-    //// 3D // FIXME: Project d3d into space
+    //// 3D
     local.d3d.eye       = glm::dvec3(0.0, 0.0, 10000.0);
-    local.d3d.direction = glm::dvec3(0.0, 1.0, 0.0);
+    local.d3d.direction = glm::dvec3(-1.0, 0.0, 0.0);
+    local.d3d.right     = glm::dvec3(0.0, -1.0, 0.0);
     local.d3d.up        = glm::dvec3(0.0, 0.0, 1.0);
 
     // BOUND
@@ -248,11 +249,10 @@ void Engine::updateViewport2D(void)
 inline
 void Engine::updateViewport3D(void)
 {
-    local.d3d.projection = glm::perspective(
+    local.d3d.projection = glm::infinitePerspective(
         options.fov,
         1.0 * options.width / options.height,
-        0.1,
-        40000000.0);
+        10.0);
 }
 
 void Engine::updateView(void)
@@ -310,7 +310,12 @@ inline
 void Engine::setupView2D(void)
 {
     glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    // FIXME: project d3d eye onto sphere
+    glm::dvec3 eye = glm::normalize(local.d3d.eye) * mercator::EQUATORIAL_RADIUS;
+    double lat = asin(eye.z / mercator::EQUATORIAL_RADIUS) * 180.0 / M_PI;
+    double lon = atan(eye.y / eye.x) * 180.0 / M_PI;
+    local.d2d.eye.x = mercator::lonToMet(lon);
+    local.d2d.eye.y = mercator::latToMet(lat);
+    local.d2d.eye.z = 10000.0;
     updateViewport();
     updateView();
 }
@@ -318,26 +323,19 @@ void Engine::setupView2D(void)
 inline
 void Engine::setupView3D(void)
 {
-    // FIXME: setup necessary points etc.
     glfwSetInputMode(gl.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPos(gl.window, options.width / 2.0, options.height / 2.0);
-    // FIXME: project d2d into space
 
-    local.d3d.eye       = glm::dvec3(12000000.0, 0.0, 0.0);
+    double altitude = local.d2d.eye.z;
+    glm::dvec2 lonlat(mercator::metToLon(local.d2d.eye.x) * M_PI / 180.0, mercator::metToLat(local.d2d.eye.y) * M_PI / 180.0);
+    local.d3d.eye.x = (mercator::EQUATORIAL_RADIUS + altitude) * cos(lonlat.y) * cos(lonlat.x);
+    local.d3d.eye.y = (mercator::EQUATORIAL_RADIUS + altitude) * cos(lonlat.y) * sin(lonlat.x);
+    local.d3d.eye.z = (mercator::EQUATORIAL_RADIUS + altitude) * sin(lonlat.y);
+
     local.d3d.direction = glm::dvec3(-1.0, 0.0, 0.0);
     local.d3d.right     = glm::dvec3(0.0, -1.0, 0.0);
     local.d3d.up        = glm::dvec3(0.0, 0.0, 1.0);
-    /*
-    double altitude = local.eye.z;
-    glm::dvec2 lonlat(mercator::metToLon(local.eye.x) * M_PI / 180.0, mercator::metToLat(local.eye.y) * M_PI / 180.0);
-    space.eye.x = mercator::EQUATORIAL_RADIUS * cos(lonlat.y) * cos(lonlat.x) + altitude * cos(lonlat.y) * cos(lonlat.x);
-    space.eye.y = mercator::EQUATORIAL_RADIUS * cos(lonlat.y) * sin(lonlat.x) + altitude * cos(lonlat.y) * sin(lonlat.x);
-    space.eye.z = mercator::EQUATORIAL_RADIUS * sin(lonlat.y) + altitude * sin(lonlat.y);
 
-    space.eye.x = 0;
-    space.eye.y = -10;
-    space.eye.z = 0;
-*/
     updateViewport();
     updateView();
 }
@@ -372,9 +370,15 @@ glm::dvec4 Engine::getBoundingRect2D(void)
 inline
 glm::dvec4 Engine::getBoundingRect3D(void)
 {
-    // TODO: project d3d.eye onto earth and count sth
-    return getBoundingRect2D();
-    return glm::dvec4(-1.0, -1.0, -1.0, -1.0);
+    double zoom = min(1.0, max(0.0001, 20.0 / (glm::length(local.d3d.eye) - mercator::EQUATORIAL_RADIUS)));
+    glm::dvec3 eye = glm::normalize(local.d3d.eye) * mercator::EQUATORIAL_RADIUS;
+    double lat = asin(eye.z / mercator::EQUATORIAL_RADIUS) * 180.0 / M_PI;
+    double lon = atan(eye.y / eye.x) * 180.0 / M_PI;
+    eye.x = mercator::lonToMet(lon);
+    eye.y = mercator::latToMet(lat);
+
+    double res = sqrt(1.0 * options.width * options.width + options.height * options.height) / zoom / 2.0;
+    return glm::dvec4(eye.x - res, eye.x + res, eye.y - res, eye.y + res);
 }
 
 glm::mat4 Engine::getUniform(void)
