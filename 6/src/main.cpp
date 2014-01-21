@@ -3,6 +3,7 @@
  * II UWr
  */
 #include "defines.h"
+
 #include <csignal>
 #include <exception>
 #include <cstring>

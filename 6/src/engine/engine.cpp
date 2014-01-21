@@ -11,11 +11,13 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include "objects.h"
 #include "drawer/drawer.h"
 #include "movement/movement.h"
 
 using namespace viewer;
 using namespace viewer::engine;
+using namespace viewer::objects;
 
 extern engine::Engine engine;
 
@@ -47,10 +49,18 @@ Engine::Engine(Log &_debug)
 
     // LOCAL
     //// 3D
-    local.d3d.eye       = glm::dvec3(2.0, 0.0, 0.0);
+    local.d3d.eye       = glm::dvec3(1.0, 0.0, 0.0);
     local.d3d.direction = glm::dvec3(-1.0, 0.0, 0.0);
     local.d3d.right     = glm::dvec3(0.0, -1.0, 0.0);
     local.d3d.up        = glm::dvec3(0.0, 0.0, 1.0);
+
+    // BOUNDS
+    local.bound.min.x   = 1000000000.0;
+    local.bound.min.y   = 1000000000.0;
+    local.bound.min.z   = 1000000000.0;
+    local.bound.max.x   = -1000000000.0;
+    local.bound.max.y   = -1000000000.0;
+    local.bound.max.z   = -1000000000.0;
 
     // Connect glfw error handler
     glfwSetErrorCallback(GLFW_CALLBACK(glfwErrorCallback));
@@ -87,6 +97,13 @@ void Engine::run(const char *path)
 {
     log.debug("Starting up...");
     loadModel(path);
+    local.d3d.eye = glm::dvec3(
+        (local.bound.max.x + local.bound.min.x) / 2.0,
+        (local.bound.max.y + local.bound.min.y) / 2.0,
+        (local.bound.max.z + local.bound.min.z) / 2.0
+    );
+
+    updateView();
     ::threads.activate();
     log.debug("Running engine");
     while(!glfwWindowShouldClose(gl.window))
@@ -103,51 +120,31 @@ inline
 void Engine::loadModel(const char *path)
 {
     log.debug("Loading %s", path);
+    unordered_map<string, GLuint> textureID;
     Assimp::Importer    import;
     const aiScene       *scene  = import.ReadFile(path, aiProcessPreset_TargetRealtime_Fast);
-    aiMesh              *mesh   = scene->mMeshes[0];
+    uint32_t            meshes  = scene->mNumMeshes;
 
-    uint32_t    faces   = mesh->mNumFaces;
-    uint32_t    indices = faces * 3;
+    loadTexture(scene);
+    local.mesh.resize(meshes);
+    for(uint32_t m = 0; m < meshes; ++ m)
+        local.mesh[m].load(scene->mMeshes[m], scene, local.bound.min, local.bound.max);
+}
 
-    local.indice.resize(indices);
-    for(uint32_t f = 0; f < faces; ++ f)
+inline
+void Engine::loadTexture(const aiScene *scene)
+{
+    uint32_t materials = scene->mNumMaterials;
+    for(uint32_t m = 0; m < materials; ++ m)
     {
-        const aiFace &face = mesh->mFaces[f];
-        assert(face.mNumIndices == 3);
-        local.indice[f * 3 + 0] = face.mIndices[0];
-        local.indice[f * 3 + 1] = face.mIndices[1];
-        local.indice[f * 3 + 2] = face.mIndices[2];
+        uint32_t index = 0;
+        aiString path;
+        aiReturn res;
+        while((res = scene->mMaterials[m]->GetTexture(aiTextureType_DIFFUSE, index ++, &path)) == AI_SUCCESS)
+            gl.texture[path.data] = 0;
     }
 
-    uint32_t verts = mesh->mNumVertices;
-    local.vert.resize(verts * 3);
-    local.normal.resize(verts * 3);
-    local.uv.resize(verts * 2);
-    for(uint32_t v = 0; v < verts; ++ v)
-    {
-        if(mesh->HasPositions())
-        {
-            local.vert[v * 3 + 0] = mesh->mVertices[v].x;
-            local.vert[v * 3 + 1] = mesh->mVertices[v].y;
-            local.vert[v * 3 + 2] = mesh->mVertices[v].z;
-        }
-
-        if(mesh->HasNormals())
-        {
-            local.normal[v * 3 + 0] = mesh->mNormals[v].x;
-            local.normal[v * 3 + 1] = mesh->mNormals[v].x;
-            local.normal[v * 3 + 2] = mesh->mNormals[v].x;
-        }
-
-        if(mesh->HasTextureCoords(0))
-        {
-            local.uv[v * 2 + 0] = mesh->mTextureCoords[0][v].x;
-            local.uv[v * 2 + 1] = mesh->mTextureCoords[0][v].y;
-        }
-    }
-
-    log.debug("Loaded %d indices, %d verts, %d normals, %d uvs", local.indice.size(), local.vert.size(), local.normal.size(), local.uv.size());
+    log.debug("Loaded %d texture paths", gl.texture.size());
 }
 
 void Engine::updateViewport(void)

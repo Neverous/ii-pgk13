@@ -5,6 +5,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <IL/il.h>
+
 #include "engine/engine.h"
 #include "libs/logger/logger.h"
 
@@ -84,20 +86,55 @@ void Drawer::setupGL(void)
 
     glfwSwapInterval(0);
 
-    // GL
-    glGenBuffers(1, &engine.gl.indice);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.indice);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, engine.local.indice.size() * sizeof(uint32_t), &engine.local.indice[0], GL_STATIC_DRAW);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_DEPTH_TEST);
 
-    glGenBuffers(1, &engine.gl.vert);
-    glBindBuffer(GL_ARRAY_BUFFER, engine.gl.vert);
-    glBufferData(GL_ARRAY_BUFFER, engine.local.vert.size() * sizeof(float), &engine.local.vert[0], GL_STATIC_DRAW);
+    /* LOAD TEXTURES */
+    log.notice("Loading textures");
+    uint32_t textures = engine.gl.texture.size();
+    ilInit();
+    ILuint *imageID = new ILuint[textures];
+    ilGenImages(textures, imageID);
 
-    //glEnable(GL_CULL_FACE);
-    //glEnable(GL_MULTISAMPLE);
-    //glEnable(GL_BLEND);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glEnable(GL_DEPTH_TEST);
+    GLuint *textureID = new GLuint[textures];
+    glGenTextures(textures, textureID);
+
+    uint32_t i = 0;
+    for(auto &it: engine.gl.texture)
+    {
+        string filename = it.first;
+        log.debug("Loading texture %s", filename.c_str());
+        it.second = textureID[i];
+
+        ilBindImage(imageID[i]);
+        ilEnable(IL_ORIGIN_SET);
+        ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+
+        if(ilLoadImage((ILstring) filename.c_str()))
+        {
+            ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+            glBindTexture(GL_TEXTURE_2D, textureID[i]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT),
+                0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+        }
+
+        else
+            throw runtime_error("Couldnt load texture");
+
+        ++ i;
+    }
+
+    ilDeleteImages(textures, imageID);
+    delete[] imageID;
+    delete[] textureID;
+
+
+    // MESHES
+    for(auto &mesh: engine.local.mesh)
+        mesh.setup(engine.gl.texture);
 
     glClearColor(0x2E / 255.0, 0x34 / 255.0, 0x36 / 255.0, 1.0);
 }
@@ -105,22 +142,14 @@ void Drawer::setupGL(void)
 inline
 void Drawer::drawModel(void)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.indice);
-    glBindBuffer(GL_ARRAY_BUFFER, engine.gl.vert);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
     glUseProgram(engine.gl.program);
     glm::mat4 uniform = engine.getUniform();
     glUniformMatrix4fv(engine.gl.MVP, 1, GL_FALSE, &uniform[0][0]);
 
-
-    glDrawElements(GL_TRIANGLES, engine.local.indice.size(), GL_UNSIGNED_INT, nullptr);
+    for(auto &mesh: engine.local.mesh)
+        mesh.draw();
 
     glUseProgram(0);
-    glDisableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 inline

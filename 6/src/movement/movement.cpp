@@ -5,8 +5,6 @@
 #include <cassert>
 #include <algorithm>
 #include <chrono>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 #include <glm/gtx/rotate_vector.hpp>
 

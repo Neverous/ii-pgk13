@@ -3,13 +3,15 @@
 
 #include <unordered_map>
 #include <vector>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 #include "libs/logger/logger.h"
 #include "libs/thread/thread.h"
+
+#include "objects.h"
 
 namespace viewer
 {
@@ -65,10 +67,8 @@ class Engine
             glm::dmat4  view;
         } d3d;
 
-        vector<uint32_t>    indice;
-        vector<float>       vert;
-        vector<float>       uv;
-        vector<float>       normal;
+        objects::Bound          bound;
+        vector<objects::Mesh>   mesh;
     } local;
 
     struct GL
@@ -80,8 +80,7 @@ class Engine
         GLuint      program;
         GLuint      MVP;
 
-        GLuint      indice;
-        GLuint      vert;
+        unordered_map<string, GLuint>  texture;
     } gl;
 
     public:
@@ -93,6 +92,7 @@ class Engine
 
     private:
         void loadModel(const char *path);
+        void loadTexture(const aiScene *scene);
         void updateViewport(void);
         void updateView(void);
         glm::mat4 getUniform(void);

@@ -1,6 +1,10 @@
 #ifndef __MOVEMENT_H__
 #define __MOVEMENT_H__
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+
 #include "libs/logger/logger.h"
 #include "libs/thread/thread.h"
 
