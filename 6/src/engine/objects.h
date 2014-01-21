@@ -100,7 +100,7 @@ void Mesh::load(aiMesh *mesh, const aiScene *scene, Bound::Min &min, Bound::Max 
     local.indice.resize(indices);
     local.vert.resize(verts * 3);
     local.normal.resize(verts * 3);
-    local.uv.resize(verts * 3);
+    local.uv.resize(verts * 2);
 
     for(uint32_t f = 0; f < faces; ++ f)
     {
@@ -197,13 +197,13 @@ void Mesh::draw(void)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    glBindBuffer(GL_ARRAY_BUFFER, gl.normal);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
     glBindBuffer(GL_ARRAY_BUFFER, gl.uv);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, gl.normal);
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     glBindTexture(GL_TEXTURE_2D, gl.texID);
 

@@ -55,18 +55,17 @@ void Movement::run(void)
 inline
 void Movement::move(void)
 {
-    const double speed = glfwGetKey(engine.gl.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? 1.0 : 0.01;
     if(glfwGetKey(engine.gl.window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.local.d3d.eye += engine.local.d3d.direction * speed;
+        engine.local.d3d.eye += engine.local.d3d.direction * engine.options.speed;
 
     if(glfwGetKey(engine.gl.window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.local.d3d.eye -= engine.local.d3d.direction * speed;
+        engine.local.d3d.eye -= engine.local.d3d.direction * engine.options.speed;
 
     if(glfwGetKey(engine.gl.window, GLFW_KEY_D) == GLFW_PRESS)
-        engine.local.d3d.eye -= engine.local.d3d.right * speed;
+        engine.local.d3d.eye -= engine.local.d3d.right * engine.options.speed;
 
     if(glfwGetKey(engine.gl.window, GLFW_KEY_A) == GLFW_PRESS)
-        engine.local.d3d.eye += engine.local.d3d.right * speed;
+        engine.local.d3d.eye += engine.local.d3d.right * engine.options.speed;
 
     if(glfwGetKey(engine.gl.window, GLFW_KEY_Q) == GLFW_PRESS)
     {
@@ -79,8 +78,6 @@ void Movement::move(void)
         engine.local.d3d.right  = glm::rotate(engine.local.d3d.right, M_PI / 180.0, engine.local.d3d.direction);
         engine.local.d3d.up     = glm::rotate(engine.local.d3d.up, M_PI / 180.0, engine.local.d3d.direction);
     }
-
-
 
     engine.updateView();
 }

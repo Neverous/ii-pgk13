@@ -46,6 +46,7 @@ Engine::Engine(Log &_debug)
     options.width       = 800;
     options.height      = 600;
     options.fov         = 45.0;
+    options.speed       = 0.05;
 
     // LOCAL
     //// 3D
@@ -103,6 +104,8 @@ void Engine::run(const char *path)
         (local.bound.max.z + local.bound.min.z) / 2.0
     );
 
+    options.speed = min(local.bound.max.x - local.bound.min.x, min(local.bound.max.y - local.bound.min.y, local.bound.max.z - local.bound.min.z)) / 10.0;
+
     updateView();
     ::threads.activate();
     log.debug("Running engine");
@@ -152,7 +155,7 @@ void Engine::updateViewport(void)
     local.d3d.projection = glm::infinitePerspective(
         options.fov,
         1.0 * options.width / options.height,
-        0.000001);
+        options.speed);
 }
 
 void Engine::updateView(void)

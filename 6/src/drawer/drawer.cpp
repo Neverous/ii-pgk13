@@ -86,9 +86,11 @@ void Drawer::setupGL(void)
 
     glfwSwapInterval(0);
 
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
 
     /* LOAD TEXTURES */
     log.notice("Loading textures");
@@ -113,12 +115,21 @@ void Drawer::setupGL(void)
 
         if(ilLoadImage((ILstring) filename.c_str()))
         {
-            ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+            ilConvertImage(IL_RGB, IL_UNSIGNED_BYTE);
             glBindTexture(GL_TEXTURE_2D, textureID[i]);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT),
-                0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexImage2D(GL_TEXTURE_2D,
+                0,
+                ilGetInteger(IL_IMAGE_FORMAT),
+                ilGetInteger(IL_IMAGE_WIDTH),
+                ilGetInteger(IL_IMAGE_HEIGHT),
+                0,
+                ilGetInteger(IL_IMAGE_FORMAT),
+                GL_UNSIGNED_BYTE,
+                ilGetData());
         }
 
         else
@@ -130,7 +141,6 @@ void Drawer::setupGL(void)
     ilDeleteImages(textures, imageID);
     delete[] imageID;
     delete[] textureID;
-
 
     // MESHES
     for(auto &mesh: engine.local.mesh)

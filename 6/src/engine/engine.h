@@ -53,6 +53,7 @@ class Engine
         int32_t     height;
 
         double      fov;
+        double      speed;
     } options;
 
     struct Local
