@@ -235,8 +235,9 @@ void Drawer::generateGrid(void)
 inline
 void Drawer::drawTerrain(int lod)
 {
+    const int LOD[9] = {5, 1, 6, 4, 0, 2, 8, 3, 7};
     for(uint8_t t = 0; t < 9; ++ t)
-        drawTile(engine.local.tile[t], max(0, lod + t - 9) / 10);
+        drawTile(engine.local.tile[t], max(0, lod + LOD[engine.local.tile[t].order] - 9) / 10);
 }
 
 inline
