@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <cstdio>
+#include <libgen.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -47,6 +48,8 @@ Engine::Engine(Log &_debug)
     options.height      = 600;
     options.fov         = 45.0;
     options.speed       = 0.05;
+    options.lights      = true;
+    options.textures    = true;
 
     // LOCAL
     //// 3D
@@ -97,6 +100,8 @@ Engine::~Engine(void)
 void Engine::run(const char *path)
 {
     log.debug("Starting up...");
+    options.basedir = path;
+    options.basedir = string(dirname(&options.basedir[0]));
     loadModel(path);
     local.d3d.eye = glm::dvec3(
         (local.bound.max.x + local.bound.min.x) / 2.0,

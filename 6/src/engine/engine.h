@@ -54,6 +54,11 @@ class Engine
 
         double      fov;
         double      speed;
+
+        bool        lights;
+        bool        textures;
+
+        string      basedir;
     } options;
 
     struct Local

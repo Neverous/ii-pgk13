@@ -105,7 +105,7 @@ void Drawer::setupGL(void)
     uint32_t i = 0;
     for(auto &it: engine.gl.texture)
     {
-        string filename = it.first;
+        string filename = engine.options.basedir + "/images/" + it.first;
         log.debug("Loading texture %s", filename.c_str());
         it.second = textureID[i];
 
