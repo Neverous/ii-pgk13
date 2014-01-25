@@ -171,7 +171,9 @@ bool Loader::loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize
 {
     const uint32_t density  = (1 << DETAIL_LEVELS) + 1;
     const uint32_t size     = density * density;
-    static objects::TerrainPoint buffer[size];
+    glBindBuffer(GL_ARRAY_BUFFER, engine.gl.buffer[engine::SWAP_BUFFER_1 + t]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(objects::TerrainPoint) * size, nullptr, GL_DYNAMIC_DRAW);
+    objects::TerrainPoint *buffer = (objects::TerrainPoint *) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     objects::Tile::ID   ID;
     glm::vec4           box;
 
@@ -225,9 +227,8 @@ bool Loader::loadTile(uint8_t t, const objects::Tile::ID &_id, uint32_t tileSize
         }
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.buffer[engine::SWAP_BUFFER_1 + t]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(objects::TerrainPoint) * size, buffer, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     return true;
 }
 

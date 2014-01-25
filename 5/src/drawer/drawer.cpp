@@ -149,7 +149,9 @@ void Drawer::generateTile(void)
         const uint32_t  tileDensity = (1 << (DETAIL_LEVELS - l));
         const uint32_t  tileStep    = (1 << l);
         engine.local.tileSize[l]     = tileDensity * tileDensity * 6;
-        uint32_t *indice = new uint32_t[engine.local.tileSize[l]];
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[l]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, engine.local.tileSize[l] * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+        uint32_t *indice = (uint32_t *) glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         uint32_t c = 0;
         for(uint16_t h = 0; h < tileDensity; ++ h)
             for(uint16_t w = 0; w < tileDensity; ++ w)
@@ -167,10 +169,8 @@ void Drawer::generateTile(void)
             }
 
         assert(c == engine.local.tileSize[l]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.tileIndice[l]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, c * sizeof(uint32_t), indice, GL_STATIC_DRAW);
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        delete[] indice;
     }
 }
 
@@ -180,7 +180,9 @@ void Drawer::generateGrid(void)
     log.debug("Creating background grid");
     const uint32_t density = (1 << DETAIL_LEVELS) + 1;
     {
-        objects::Position   *point = new objects::Position[density * density];
+        glBindBuffer(GL_ARRAY_BUFFER, engine.gl.buffer[engine::GRID_BUFFER]);
+        glBufferData(GL_ARRAY_BUFFER, density * density * sizeof(objects::Position), nullptr, GL_STATIC_DRAW);
+        objects::Position   *point = (objects::Position *) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         uint32_t p = 0;
         for(uint16_t h = 0; h < density; ++ h)
             for(uint16_t w = 0; w < density; ++ w)
@@ -192,10 +194,8 @@ void Drawer::generateGrid(void)
             }
 
         assert(p == density * density);
-        glBindBuffer(GL_ARRAY_BUFFER, engine.gl.buffer[engine::GRID_BUFFER]);
-        glBufferData(GL_ARRAY_BUFFER, p * sizeof(objects::Position), point, GL_STATIC_DRAW);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        delete[] point;
     }
 
     log.debug("Creating %d levels of detail tables for grid", DETAIL_LEVELS);
@@ -204,7 +204,9 @@ void Drawer::generateGrid(void)
         const uint32_t  gridDensity = (1 << (DETAIL_LEVELS - l)) + 1;
         const uint32_t  gridStep    = (1 << l);
         engine.local.gridSize[l]     = gridDensity * (gridDensity - 1) * 4;
-        uint32_t *indice = new uint32_t[engine.local.gridSize[l]];
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.gridIndice[l]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, engine.local.gridSize[l] * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+        uint32_t *indice = (uint32_t *) glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         uint32_t c = 0;
         for(uint16_t h = 0; h < gridDensity; ++ h)
             for(uint16_t w = 0; w < gridDensity - 1; ++ w)
@@ -225,10 +227,8 @@ void Drawer::generateGrid(void)
             }
 
         assert(c == engine.local.gridSize[l]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, engine.gl.gridIndice[l]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, c * sizeof(uint32_t), indice, GL_STATIC_DRAW);
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        delete[] indice;
     }
 }
 
