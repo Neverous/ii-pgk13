@@ -84,14 +84,18 @@ class Engine
 
         // SHADERS
         GLuint      program;
-        GLuint      MVP;
-        GLuint      INV;
+        GLuint      NormMatrix;
+        GLuint      ViewMatrix;
+        GLuint      ProjectionMatrix;
 
         GLuint      diffuse;
         GLuint      specular;
         GLuint      ambient;
         GLuint      emissive;
         GLuint      shininess;
+
+        GLuint      lights;
+        GLuint      textures;
 
         unordered_map<string, GLuint>  texture;
     } gl;

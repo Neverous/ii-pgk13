@@ -191,7 +191,18 @@ void Engine::glfwKeyCallback(GLFWwindow */*window*/, int key, int/* scancode*/, 
 
             break;
 
-        // FIXME
+
+        case GLFW_KEY_T:
+            if(action == GLFW_RELEASE)
+                options.textures = !options.textures;
+
+            break;
+
+        case GLFW_KEY_L:
+            if(action == GLFW_RELEASE)
+                options.lights = !options.lights;
+
+            break;
     }
 }
 

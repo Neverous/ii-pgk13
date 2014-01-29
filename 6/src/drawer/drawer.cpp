@@ -90,7 +90,6 @@ void Drawer::setupGL(void)
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
 
     /* LOAD TEXTURES */
     log.notice("Loading textures");
@@ -153,10 +152,23 @@ inline
 void Drawer::drawModel(void)
 {
     glUseProgram(engine.gl.program);
-    glm::mat4 uniform = engine.getUniform();
-    glm::mat4 inv = glm::inverse(glm::mat4(engine.local.d3d.view));
-    glUniformMatrix4fv(engine.gl.MVP, 1, GL_FALSE, &uniform[0][0]);
-    glUniformMatrix4fv(engine.gl.INV, 1, GL_FALSE, &inv[0][0]);
+    glm::mat4 view = glm::mat4(engine.local.d3d.view);
+    glm::mat4 projection = glm::mat4(engine.local.d3d.projection);
+    glm::mat4 norm = glm::inverse(glm::transpose(view));;
+    glUniformMatrix4fv(engine.gl.NormMatrix, 1, GL_FALSE, &norm[0][0]);
+    glUniformMatrix4fv(engine.gl.ViewMatrix, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(engine.gl.ProjectionMatrix, 1, GL_FALSE, &projection[0][0]);
+    if(engine.options.lights)
+        glUniform1f(engine.gl.lights, 1.0);
+
+    else
+        glUniform1f(engine.gl.lights, 0.0);
+
+    if(engine.options.textures)
+        glUniform1f(engine.gl.textures, 1.0);
+
+    else
+        glUniform1f(engine.gl.textures, 0.0);
 
     for(auto &mesh: engine.local.mesh)
     {
@@ -176,13 +188,17 @@ void Drawer::loadPrograms(void)
 {
     log.debug("Loading programs");
     engine.gl.program   = loadProgram("src/shaders/vertex.glsl", "src/shaders/fragment.glsl");
-    engine.gl.MVP       = glGetUniformLocation(engine.gl.program, "MVP");
-    engine.gl.INV       = glGetUniformLocation(engine.gl.program, "INV");
-    engine.gl.diffuse   = glGetUniformLocation(engine.gl.program, "diffuse");
-    engine.gl.ambient   = glGetUniformLocation(engine.gl.program, "ambient");
-    engine.gl.specular  = glGetUniformLocation(engine.gl.program, "specular");
-    engine.gl.emissive  = glGetUniformLocation(engine.gl.program, "emissive");
-    engine.gl.shininess = glGetUniformLocation(engine.gl.program, "shininess");
+    engine.gl.NormMatrix        = glGetUniformLocation(engine.gl.program, "NormMatrix");
+    engine.gl.ViewMatrix        = glGetUniformLocation(engine.gl.program, "ViewMatrix");
+    engine.gl.ProjectionMatrix  = glGetUniformLocation(engine.gl.program, "ProjectionMatrix");
+    engine.gl.lights            = glGetUniformLocation(engine.gl.program, "lights");
+    engine.gl.textures          = glGetUniformLocation(engine.gl.program, "textures");
+
+    engine.gl.diffuse   = glGetUniformLocation(engine.gl.program, "material.diffuse");
+    engine.gl.ambient   = glGetUniformLocation(engine.gl.program, "material.ambient");
+    engine.gl.specular  = glGetUniformLocation(engine.gl.program, "material.specular");
+    engine.gl.emissive  = glGetUniformLocation(engine.gl.program, "material.emissive");
+    engine.gl.shininess = glGetUniformLocation(engine.gl.program, "material.shininess");
 }
 
 inline
