@@ -15,6 +15,8 @@
 namespace viewer
 {
 
+namespace drawer { class Drawer; }
+
 namespace objects
 {
 
@@ -39,6 +41,7 @@ struct Bound
 
 class Mesh
 {
+    friend class drawer::Drawer;
     struct Local
     {
         vector<uint32_t>    indice;

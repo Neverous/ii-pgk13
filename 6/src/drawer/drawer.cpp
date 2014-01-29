@@ -154,10 +154,19 @@ void Drawer::drawModel(void)
 {
     glUseProgram(engine.gl.program);
     glm::mat4 uniform = engine.getUniform();
+    glm::mat4 inv = glm::inverse(glm::mat4(engine.local.d3d.view));
     glUniformMatrix4fv(engine.gl.MVP, 1, GL_FALSE, &uniform[0][0]);
+    glUniformMatrix4fv(engine.gl.INV, 1, GL_FALSE, &inv[0][0]);
 
     for(auto &mesh: engine.local.mesh)
+    {
+        glUniform4f(engine.gl.diffuse, mesh.local.diffuse.x, mesh.local.diffuse.y, mesh.local.diffuse.z, mesh.local.diffuse.w);
+        glUniform4f(engine.gl.ambient, mesh.local.ambient.x, mesh.local.ambient.y, mesh.local.ambient.z, mesh.local.ambient.w);
+        glUniform4f(engine.gl.specular, mesh.local.specular.x, mesh.local.specular.y, mesh.local.specular.z, mesh.local.specular.w);
+        glUniform4f(engine.gl.emissive, mesh.local.emissive.x, mesh.local.emissive.y, mesh.local.emissive.z, mesh.local.emissive.w);
+        glUniform1f(engine.gl.shininess, mesh.local.shininess);
         mesh.draw();
+    }
 
     glUseProgram(0);
 }
@@ -168,6 +177,12 @@ void Drawer::loadPrograms(void)
     log.debug("Loading programs");
     engine.gl.program   = loadProgram("src/shaders/vertex.glsl", "src/shaders/fragment.glsl");
     engine.gl.MVP       = glGetUniformLocation(engine.gl.program, "MVP");
+    engine.gl.INV       = glGetUniformLocation(engine.gl.program, "INV");
+    engine.gl.diffuse   = glGetUniformLocation(engine.gl.program, "diffuse");
+    engine.gl.ambient   = glGetUniformLocation(engine.gl.program, "ambient");
+    engine.gl.specular  = glGetUniformLocation(engine.gl.program, "specular");
+    engine.gl.emissive  = glGetUniformLocation(engine.gl.program, "emissive");
+    engine.gl.shininess = glGetUniformLocation(engine.gl.program, "shininess");
 }
 
 inline
